@@ -1,0 +1,59 @@
+name: linux_build
+on:
+  pull_request:
+  release:
+    types:
+      - published
+  push:
+    tags: ["*"]
+    branches:
+      - main
+      - dev
+# env:
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+        compiler:
+          - msvc
+        cmake_preset:
+          - "unixlike-gcc-debug"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Tools
+        run: |
+          cd ./scripts
+          source ./setup.sh
+
+      - name: Project setup
+        run: |
+          source ./scripts/load_env.sh
+          tsx project.mts setup ${{matrix.cmake_preset}}
+
+      - name: Cmake configure
+        run: |
+          source ./scripts/load_env.sh
+          tsx project.mts config
+
+      - name: Cmake build
+        run: |
+          source ./scripts/load_env.sh
+          tsx project.mts build
+
+      - name: Cmake test
+        run: |
+          source ./scripts/load_env.sh
+          tsx project.mts test
+
+      - name: Cmake pack
+        run: |
+          source ./scripts/load_env.sh
+          tsx project.mts pack

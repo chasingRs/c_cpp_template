@@ -1,0 +1,10 @@
+# This file is managed by Conan, contents will be overwritten.
+# To keep your changes, remove these comment lines, but the plugin won't be able to modify your requirements
+
+requirements:
+  - "catch2/3.7.1"
+  - "spdlog/1.15.0"
+  - "jsoncpp/1.9.6"
+  - "dbg-macro/0.5.1"
+  - "cli11/2.4.2"
+  - "opencv/4.8.1"

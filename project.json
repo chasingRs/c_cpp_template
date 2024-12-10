@@ -1,0 +1,20 @@
+{
+  "configPath": "project.json",
+  "configureConfig": {
+    "preset": "unixlike-gcc-debug",
+    "sourceDir": "/home/pkj/Project/c_c++/opencv_practice",
+    "binaryDir": "/home/pkj/Project/c_c++/opencv_practice/out/build/unixlike-gcc-debug",
+    "installDir": "/home/pkj/Project/c_c++/opencv_practice/out/install/unixlike-gcc-debug",
+    "buildType": "Debug"
+  },
+  "buildConfig": {
+    "target": "all"
+  },
+  "launchConfig": {
+    "args": "",
+    "target": ""
+  },
+  "testConfig": {
+    "ctestArgs": ""
+  }
+}

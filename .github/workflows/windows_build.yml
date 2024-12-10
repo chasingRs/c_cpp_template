@@ -1,0 +1,55 @@
+name: windows_build
+on:
+  pull_request:
+  release:
+    types:
+      - published
+  push:
+    tags: ["*"]
+    branches:
+      - main
+      - dev
+# env:
+defaults:
+  run:
+    shell: powershell
+jobs:
+  build:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+        compiler:
+          - msvc
+        cmake_preset:
+          - "windows-msvc-debug-developer-mode"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Tools
+        run: |
+          cd ./scripts
+          ./setup.bat
+
+      - name: Project setup
+        run: |
+          tsx project.mts setup ${{matrix.cmake_preset}}
+
+      - name: Cmake configure
+        run: |
+          tsx project.mts config
+
+      - name: Cmake build
+        run: |
+          tsx project.mts build
+
+      - name: Cmake test
+        run: |
+          tsx project.mts test
+
+      - name: Cmake pack
+        run: |
+          tsx project.mts pack
