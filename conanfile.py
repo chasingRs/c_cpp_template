@@ -24,4 +24,5 @@ class ConanApplication(ConanFile):
             self.requires(requirement)
 
     def configure(self):
-        self.options["*"].shared = True
+        self.options["opencv"].shared = True
+        self.options["opencv"].with_wayland = False

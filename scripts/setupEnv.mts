@@ -136,7 +136,6 @@ function Invoke-Environment {
         [Parameter(Mandatory=$true)]
         [string] $Command
     )
-
     $Command = "\`"" + $Command + "\`""
     cmd /c "$Command > nul 2>&1 && set" | . { process {
         if ($_ -match '^([^=]+)=(.*)') {
@@ -171,7 +170,7 @@ class PackageManager {
       case 'choco':
         const pkgList = ['ninja', 'cmake', 'nsis']
         const pkgNeedInstall = pkgList.filter((pkg) => {
-          if (this.commandExists(pkg)) {
+          if (this.commandExists(pkg) == true) {
             console.log(`${pkg} already installed`)
             return false
           } else {
@@ -185,14 +184,14 @@ class PackageManager {
 
         // choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=C:\MSVC 2022\buildTools --path shared=C:\MSVC 2022\shared --path cache=C:\MSVC 2022\cache"
 
-        try {
-          findVcvarsall('2022', undefined)
-          console.info('MSVC 2022 already installed')
-        } catch {
-          console.info('Installing MSVC 2022')
-          const chocoInstallCommand = `choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\\buildTools --path shared=${MSVCInstallDir}\\shared --path cache=${MSVCInstallDir}\\cache"`
-          await $`cmd /C ${chocoInstallCommand}`.pipe(process.stderr)
-        }
+        // try {
+        //   findVcvarsall('2022', undefined)
+        //   console.info('MSVC 2022 already installed')
+        // } catch {
+        console.info('Installing MSVC 2022')
+        const chocoInstallCommand = `choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\\buildTools --path shared=${MSVCInstallDir}\\shared --path cache=${MSVCInstallDir}\\cache"`
+        await $`cmd /C ${chocoInstallCommand}`.pipe(process.stderr)
+        // }
         break
       case 'apt':
         await this._aptInstallPackage(['build-essential', 'cmake', 'zlib1g-dev', 'libffi-dev', 'libssl-dev', 'libbz2-dev', 'libreadline-dev', 'libsqlite3-dev',

@@ -102,7 +102,7 @@ include(cmake/PackageProject.cmake)
 myproject_package_project(
   TARGETS
   json_parser
-  opencv_practice
+  # opencv_practice
   # myproject_options
   # myproject_warnings
   # FIXME: this does not work! CK PRIVATE_DEPENDENCIES_CONFIGURED project_options project_warnings

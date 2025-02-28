@@ -2,17 +2,17 @@
   "configPath": "project.json",
   "configureConfig": {
     "preset": "unixlike-gcc-debug",
-    "sourceDir": "/home/pkj/Project/c_c++/opencv_practice",
-    "binaryDir": "/home/pkj/Project/c_c++/opencv_practice/out/build/unixlike-gcc-debug",
-    "installDir": "/home/pkj/Project/c_c++/opencv_practice/out/install/unixlike-gcc-debug",
+    "sourceDir": "/home/pkj/workspace/Project/c_c++/xControler",
+    "binaryDir": "/home/pkj/workspace/Project/c_c++/xControler/out/build/unixlike-gcc-debug",
+    "installDir": "/home/pkj/workspace/Project/c_c++/xControler/out/install/unixlike-gcc-debug",
     "buildType": "Debug"
   },
   "buildConfig": {
     "target": "all"
   },
   "launchConfig": {
-    "args": "",
-    "target": ""
+    "target": "json_parser",
+    "args": ""
   },
   "testConfig": {
     "ctestArgs": ""
