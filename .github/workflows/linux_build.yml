@@ -15,14 +15,14 @@ defaults:
     shell: bash -leo pipefail {0}
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-22.04
+          - ubuntu-24.04
         compiler:
-          - msvc
+          - gcc-13
         cmake_preset:
           - "unixlike-gcc-debug"
     steps:

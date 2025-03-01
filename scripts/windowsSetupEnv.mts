@@ -174,7 +174,7 @@ class PackageManager {
       console.log("pyenv already installed,installing python...")
     }
     else {
-      this._chocoInstallPackage(['pyenv-win'])
+      await this._chocoInstallPackage(['pyenv-win'])
     }
     await $`pyenv install -s 3.10.5; 
             pyenv global 3.10.5`.pipe(process.stderr)
