@@ -183,7 +183,7 @@ class PackageManager {
     }
     else {
       this._chocoInstallPackage(['pyenv-win'])
-      await $`pyenv install -s 3 && 
+      await $`pyenv install -s 3; 
             pyenv global 3`.pipe(process.stderr)
       // work or not ?
       // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
