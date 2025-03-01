@@ -10,13 +10,12 @@ export function refreshEnv(script_path: string, error_message_pattern?: RegExp) 
       .execSync(`set && cls && ${script_path} && cls && set`, { shell: "cmd" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f");
-    console.log(cmd_output_parts)
     old_environment = cmd_output_parts[0].split("\r\n");
     script_output = cmd_output_parts[1].split("\r\n");
     new_environment = cmd_output_parts[2].split("\r\n");
   } else if (process.platform == "linux") {
     const cmd_output_string = child_process
-      .execSync(`env && echo \f && ${script_path} && echo \f && env`)
+      .execSync(`env && echo \f && ${script_path} && echo \f && env`, { shell: "bash" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f\n");
     old_environment = cmd_output_parts[0].split("\n");
