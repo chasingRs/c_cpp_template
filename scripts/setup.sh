@@ -14,8 +14,8 @@ install_node_npm() {
 	npm_install_packages
 }
 
-if command -v fnm >/dev/null 2>&1; then
-	echo "fnm is already installed."
+if command -v node >/dev/null 2>&1; then
+	echo "nodejs is already installed."
 else
 	install_node_npm
 fi
