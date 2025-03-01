@@ -14,13 +14,18 @@ export function refreshEnv(script_path: string, error_message_pattern?: RegExp) 
     script_output = cmd_output_parts[1].split("\r\n");
     new_environment = cmd_output_parts[2].split("\r\n");
   } else if (process.platform == "linux") {
+    // 参照 ~/.bashrc 中的代码段
+    //``` # If not running interactively, don't do anything
+    //    [[ $- != *i* ]] && return ```
+    // 为了避免非交互式shell执行脚本时，直接退出而无法设置环境变量，需要显示制定交互式'-i'
     const cmd_output_string = child_process
-      .execSync(`env && echo \f && ${script_path} && echo \f && env`, { shell: "bash" })
+      .execSync(`bash -i -c 'env && echo \f && ${script_path} && echo \f && env'`, { shell: "bash" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f\n");
-    old_environment = cmd_output_parts[0].split("\n");
+    console.log(cmd_output_parts)
+    old_environment = cmd_output_parts[0].split("\n").filter(item => item.length > 0);
     script_output = cmd_output_parts[1].split("\n").filter(item => item.length > 0);
-    new_environment = cmd_output_parts[2].split("\n");
+    new_environment = cmd_output_parts[2].split("\n").filter(item => item.length > 0);
   }
 
   // If vsvars.bat is given an incorrect command line, it will print out
@@ -94,3 +99,5 @@ function isPathVariable(name) {
   const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
   return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
 }
+
+refreshEnv("source ~/.bashrc")
