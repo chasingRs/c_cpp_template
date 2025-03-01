@@ -276,7 +276,7 @@ async function main() {
       refreshEnv('refreshenv')
     }
     else if (process.platform === 'linux') {
-      refreshEnv('source ~/.bashrc')
+      refreshEnv('source ~/.profile')
     }
   }
   const configPath = 'project.json'

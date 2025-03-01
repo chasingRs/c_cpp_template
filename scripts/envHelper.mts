@@ -32,7 +32,7 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
     // 解决方案:将环境变量放到~/.profile中,见
     // https://unix.stackexchange.com/questions/758273/how-to-export-global-variables-to-child-process-in-bash
     const cmd_output_string = child_process
-      .execSync(`bash -i -c 'env && echo \f && ${cmd} && echo \f && env'`, { shell: "bash" })
+      .execSync(`env && echo \f && ${cmd} && echo \f && env`, { shell: "bash" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f\n");
     old_environment = cmd_output_parts[0].split("\n").filter(item => item.length > 0);
