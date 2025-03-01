@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import 'zx/globals';
 import { MSVCInstallDir } from './consts.mjs';
 import { findVcvarsall } from "./setupMSVCDev.mjs"
-import { refreshEnv } from './refreshenv.mts';
+import { findCmdsInEnv, refreshEnv } from './envHelper.mts';
 
 if (process.platform === 'win32') {
   console.error("This script is for Linux only,run 'windowsSetupEnv.mts' instead")
@@ -59,9 +59,6 @@ class PackageManager {
   constructor() {
     this.packageManager = ''
   }
-  _checkExists = function (command: string) {
-    return which.sync(command, { nothrow: true }) !== null
-  }
   installToolchain = async function () {
     switch (this.packageManager) {
       case 'apt':
@@ -84,7 +81,7 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (this._checkExists('pyenv') || fs.existsSync(`${os.homedir()}/.pyenv`)) {
+    if (findCmdsInEnv(['pyenv']).length == 0 || fs.existsSync(`${os.homedir()}/.pyenv`)) {
       console.log("pyenv already installed,installing python...")
     }
     else {
@@ -100,7 +97,7 @@ class PackageManager {
   }
 
   installConan = async function () {
-    if (this._checkExists('conan')) {
+    if (findCmdsInEnv(['conan']).length == 0) {
       console.log("Conan already installed")
     } else {
       this._pipInstallPackage(['conan'])

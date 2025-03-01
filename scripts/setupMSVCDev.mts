@@ -1,6 +1,6 @@
 import child_process from "child_process";
 import process from "process";
-import { refreshEnv } from "./refreshenv.mts";
+import { refreshEnv } from "./envHelper.mts";
 
 const PROGRAM_FILES_X86 = process.env["ProgramFiles(x86)"];
 const PROGRAM_FILES = [

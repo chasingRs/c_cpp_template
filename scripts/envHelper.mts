@@ -1,6 +1,14 @@
 import child_process from "child_process";
 import process from "process";
 
+// Check cmd in env, return the cmd list that not found
+export function findCmdsInEnv(cmdList: string[]) {
+  cmdList.filter((cmd) => {
+    return which.sync(cmd, { nothrow: true }) === null
+  })
+  return cmdList
+}
+
 export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   let old_environment
   let script_output

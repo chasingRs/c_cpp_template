@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { usePowerShell } from 'zx';
 import 'zx/globals';
 import { MSVCInstallDir } from './consts.mjs';
-import { refreshEnv } from './refreshenv.mjs'
+import { findCmdsInEnv, refreshEnv } from './envHelper.mjs'
 
 if (process.platform != 'win32') {
   console.error(chalk.red("This script is for Windows only,run 'linuxSetupEnv.mts' instead"))
@@ -141,21 +141,13 @@ class PackageManager {
   constructor() {
     this.packageManager = ''
   }
-  _checkExists = function (command: string) {
-    return which.sync(command, { nothrow: true }) !== null
-  }
   installToolchain = async function () {
     switch (this.packageManager) {
       case 'choco':
         const pkgList = ['ninja', 'cmake', 'nsis']
-        const pkgNeedInstall = pkgList.filter((pkg) => {
-          if (this._checkExists(pkg)) {
-            console.log(`${pkg} already installed`)
-            return false
-          }
-          return true
-        })
-        console.log("######## Installing packages: ", pkgNeedInstall, "#########")
+
+        const pkgNeedInstall = findCmdsInEnv(pkgList)
+        console.log(chalk.blueBright("######## Installing packages: ", pkgNeedInstall, "#########"))
         await this._chocoInstallPackage(pkgNeedInstall)
         // FIXME: Doesn't work
         // await this._chocoInstallPackageWithArgs('visualstudio2022buildtools', [`--package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`])
@@ -178,21 +170,21 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (this._checkExists('pyenv')) {
+    if (findCmdsInEnv(['pyenv'])) {
       console.log("pyenv already installed,installing python...")
     }
     else {
       this._chocoInstallPackage(['pyenv-win'])
-      await $`pyenv install -s 3; 
-            pyenv global 3`.pipe(process.stderr)
-      // work or not ?
-      // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
-      await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile $env:TMP/get-pip.py && python $env:TMP/get-pip.py"`.pipe(process.stderr)
     }
+    await $`pyenv install -s 3; 
+            pyenv global 3`.pipe(process.stderr)
+    // work or not ?
+    // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+    await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile ${os.tmpdir()}/get-pip.py && python ${os.tmpdir()}/get-pip.py"`.pipe(process.stderr)
   }
 
   installConan = async function () {
-    if (this._checkExists('conan')) {
+    if (findCmdsInEnv(['conan'])) {
       console.log(chalk.green("Conan already installed"))
     } else {
       await this._chocoInstallPackage(['conan'])
@@ -201,7 +193,7 @@ class PackageManager {
 
   detectSystemPackageManager = async function () {
     if (process.platform === 'win32') {
-      if (this._checkExists('choco')) {
+      if (findCmdsInEnv(['choco'])) {
         this.packageManager = 'choco'
       }
       else {
