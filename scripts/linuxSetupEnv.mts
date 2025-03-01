@@ -91,7 +91,7 @@ class PackageManager {
             echo 'eval "$(pyenv init -)"' >> ~/.bashrc`.pipe(process.stderr)
     }
     refreshEnv('source ~/.bashrc') //refresh environment, update PATH,etc
-    await $`pyenv install -s 3.10.5 && 
+    await $`pyenv install 3.10.5 && 
             pyenv global 3.10.5 &&
             curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
   }
