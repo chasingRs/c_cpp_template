@@ -15,7 +15,8 @@ class ConfigModifier {
     this.paltform = process.platform
   }
   modSystem = async function () {
-    await this.modWindowsRegistry()
+    // BUG : This cause msvc toolchain broken
+    // await this.modWindowsRegistry()
   }
   modConfig = async function () {
     await this.windowsMod()
