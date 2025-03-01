@@ -29,31 +29,26 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Tools
+        working-directory: ./scripts
         run: |
-          cd ./scripts
-          source ./setup.sh
+          ./setup.sh
 
       - name: Project setup
         run: |
-          source ./scripts/load_env.sh
           tsx project.mts setup ${{matrix.cmake_preset}}
 
       - name: Cmake configure
         run: |
-          source ./scripts/load_env.sh
           tsx project.mts config
 
       - name: Cmake build
         run: |
-          source ./scripts/load_env.sh
           tsx project.mts build
 
       - name: Cmake test
         run: |
-          source ./scripts/load_env.sh
           tsx project.mts test
 
       - name: Cmake pack
         run: |
-          source ./scripts/load_env.sh
           tsx project.mts pack
