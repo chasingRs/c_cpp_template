@@ -26,6 +26,11 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
     //``` # If not running interactively, don't do anything
     //    [[ $- != *i* ]] && return ```
     // 为了避免非交互式shell执行脚本时，直接退出而无法设置环境变量，需要显示制定交互式'-i'
+    // BUG: 增加 '-i'参数导致github action报错
+    // bash: cannot set terminal process group (829): Inappropriate ioctl for device
+    // bash: no job control in this shell
+    // 解决方案:将环境变量放到~/.profile中,见
+    // https://unix.stackexchange.com/questions/758273/how-to-export-global-variables-to-child-process-in-bash
     const cmd_output_string = child_process
       .execSync(`bash -i -c 'env && echo \f && ${cmd} && echo \f && env'`, { shell: "bash" })
       .toString();

@@ -86,11 +86,11 @@ class PackageManager {
     }
     else {
       await $`curl https://pyenv.run | bash`.pipe(process.stderr)
-      await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && 
-            echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && 
-            echo 'eval "$(pyenv init -)"' >> ~/.bashrc`.pipe(process.stderr)
+      await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile && 
+            echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile && 
+            echo 'eval "$(pyenv init -)"' >> ~/.profile`.pipe(process.stderr)
     }
-    refreshEnv('source ~/.bashrc') //refresh environment, update PATH,etc
+    refreshEnv('source ~/.profile') //refresh environment, update PATH,etc
     await $`pyenv install -s 3.10.5 && 
             pyenv global 3.10.5`.pipe(process.stderr)
     if (findCmdsInEnv(['pip']).length > 0) {

@@ -8,8 +8,8 @@ npm_install_packages() {
 # Function to install Node.js and npm using apt (Debian/Ubuntu)
 install_node_npm() {
 	echo "Installing Node.js and npm..."
-	curl -fsSL https://fnm.vercel.app/install | bash
-	source ~/.bashrc
+	bash ./setup_fnm.sh
+	source ~/.profile
 	fnm i v22.13.1
 	npm_install_packages
 }
@@ -24,6 +24,6 @@ npm_install_packages
 echo "zx installation completed."
 
 echo "installing build environment..."
-source ~/.bashrc
+source ~/.profile
 
 tsx linuxSetupEnv.mts
