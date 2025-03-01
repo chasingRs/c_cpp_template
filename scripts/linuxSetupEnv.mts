@@ -59,8 +59,8 @@ class PackageManager {
   constructor() {
     this.packageManager = ''
   }
-  _checkExists = async function (command: string) {
-    return await which(command, { nothrow: true }) !== null
+  _checkExists = function (command: string) {
+    return which.sync(command, { nothrow: true }) !== null
   }
   installToolchain = async function () {
     switch (this.packageManager) {
