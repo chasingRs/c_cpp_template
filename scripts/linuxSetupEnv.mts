@@ -84,7 +84,7 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (this._checkExists('pyenv') || fs.existsSync('${process.env.HOME}/.pyenv')) {
+    if (this._checkExists('pyenv') || fs.existsSync(`${os.homedir()}/.pyenv`)) {
       console.log("pyenv already installed,installing python...")
     }
     else {
