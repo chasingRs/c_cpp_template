@@ -268,6 +268,17 @@ function showHelp() {
 
 
 async function main() {
+  // To avoid user not reload the ternimal after install tools,refresh the env
+  let cmdNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ccache', 'ctest'])
+  if (cmdNotFound.length > 0) {
+    console.log(chalk.redBright(`Some commands not found in path:${cmdNotFound} ,Tring reload the environment...`))
+    if (process.platform === 'win32') {
+      refreshEnv('refreshenv')
+    }
+    else if (process.platform === 'linux') {
+      refreshEnv('source ~/.bashrc')
+    }
+  }
   const configPath = 'project.json'
   const presetsFile = 'CMakePresets.json'
 
@@ -297,17 +308,6 @@ async function main() {
   // await excutor.cmakeBuild()
 
   if (myArgv._[0] == 'setup') {
-    // To avoid user not reload the ternimal after install tools,refresh the env
-    let cmdNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ccache', 'ctest'])
-    if (cmdNotFound.length > 0) {
-      console.log(chalk.redBright(`Some commands not found in path:${cmdNotFound} ,Tring reload the environment...`))
-      if (process.platform === 'win32') {
-        refreshEnv('refreshenv')
-      }
-      else if (process.platform === 'linux') {
-        refreshEnv('source ~/.bashrc')
-      }
-    }
     console.log('Running setup...')
     if (myArgv._.length < 2) {
       console.error('Please specify a preset to setup')
