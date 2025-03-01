@@ -13,9 +13,9 @@ npm_install_packages() {
 # Function to install Node.js and npm using apt (Debian/Ubuntu)
 install_node_npm() {
 	echo "Installing Node.js and npm..."
-	curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.9/install.sh | bash
-	source load_env.sh
-	nvm install --lts
+	curl -fsSL https://fnm.vercel.app/install | bash
+	source ~/.bashrc
+	fnm i v22.13.1
 	npm_install_packages
 }
 
