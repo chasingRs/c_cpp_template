@@ -214,20 +214,19 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (process.platform === 'win32') {
-      if (!await this.commandExists('python'))
-        await this._chocoInstallPackage(['python'])
+    if (await which('python', { nothrow: true })) {
+      console.log("Python already installed")
     }
     else {
       const home = process.env.HOME
       if (fs.existsSync(`${home}/.pyenv`)) {
         console.log("pyenv already installed")
-        return
-      }
-      await $`curl https://pyenv.run | bash`.pipe(process.stderr)
-      await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && 
+      } else {
+        await $`curl https://pyenv.run | bash`.pipe(process.stderr)
+        await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && 
             echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && 
             echo 'eval "$(pyenv init -)"' >> ~/.bashrc`.pipe(process.stderr)
+      }
       await $`source load_env.sh &&
             pyenv install -s 3 && 
             pyenv global 3 &&
