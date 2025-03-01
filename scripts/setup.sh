@@ -1,9 +1,4 @@
-#!/bin/bash
-
-# This script setup basic tools for running zx scripts
-# 1. Installl nodejs and npm(using nvm)
-# 2. Install zx and tsx using npm
-
+#!/usr/bin/bash
 npm_install_packages() {
 	echo "Installing npm packages..."
 	npm install -g tsx
@@ -19,9 +14,13 @@ install_node_npm() {
 	npm_install_packages
 }
 
-install_node_npm
-npm_install_packages
+if command -v fnm >/dev/null 2>&1; then
+	echo "fnm is already installed."
+else
+	install_node_npm
+fi
 
+npm_install_packages
 echo "zx installation completed."
 
 echo "installing build environment..."

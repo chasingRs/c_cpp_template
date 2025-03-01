@@ -20,4 +20,4 @@ npm install ..
 
 # Install setup-cli globally using npm
 
-tsx setupEnv.mts
+tsx windowsSetupEnv.mts
