@@ -1,7 +1,7 @@
 import child_process from "child_process";
 import process from "process";
 
-export function refreshEnv(script_path: string, error_message_pattern: RegExp) {
+export function refreshEnv(script_path: string, error_message_pattern?: RegExp) {
   let old_environment
   let script_output
   let new_environment
@@ -27,7 +27,7 @@ export function refreshEnv(script_path: string, error_message_pattern: RegExp) {
   // If vsvars.bat is given an incorrect command line, it will print out
   // an error and *still* exit successfully. Parse out errors from output
   // which don't look like environment variables, and fail if appropriate.
-  if (error_message_pattern) {
+  if (error_message_pattern !== undefined) {
     const error_messages = script_output.filter((line) => {
       if (line.match(error_message_pattern)) {
         return true;
@@ -95,8 +95,3 @@ function isPathVariable(name) {
   const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
   return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
 }
-
-function main() {
-  refreshEnv("export PATH=$PATH:/home/pkj/wawdw", /Error:/);
-}
-main()

@@ -7,15 +7,11 @@ import { exec } from 'child_process';
 import { usePowerShell } from 'zx';
 import 'zx/globals';
 import { MSVCInstallDir } from './consts.mjs';
-import { findVcvarsall } from "./setupMSVCDev.mjs"
-
-if (process.platform === 'win32') {
-  usePowerShell()
-}
 
 if (process.platform != 'win32') {
-  $.prefix = "set -eo pipefail;"
+  console.error(chalk.red("This script is for Windows only,run 'linuxSetupEnv.mts' instead"))
 }
+usePowerShell()
 
 class ConfigModifier {
   paltform: string
@@ -23,24 +19,10 @@ class ConfigModifier {
     this.paltform = process.platform
   }
   modSystem = async function () {
-    if (this.paltform === 'linux') {
-      // await this.modLinux()
-    } else if (this.paltform === 'win32') {
-      await this.modWindowsRegistry()
-    } else {
-      console.error("Unsupported platform")
-      process.exit
-    }
+    await this.modWindowsRegistry()
   }
   modConfig = async function () {
-    if (this.paltform === 'linux') {
-      await this.unixMod()
-    } else if (this.paltform === 'win32') {
-      await this.windowsMod()
-    } else {
-      console.error("Unsupported platform")
-      process.exit
-    }
+    await this.windowsMod()
   }
   private unixMod = async function () {
     await this.modConan()
@@ -51,7 +33,7 @@ class ConfigModifier {
   // For linux to use System package manager to install packages
   private modConan = async function () {
     const conanHome = `${process.env.HOME}/.conan2`
-    await $`source load_env.sh && conan profile detect --force`.pipe(process.stderr)
+    await $`conan profile detect --force`.pipe(process.stderr)
     const content = fs.readFileSync(`${conanHome}/global.conf`, 'utf8')
     if (content.includes("tools.system.package_manager:mode")) {
       console.log("conan global config already configured")
@@ -214,23 +196,27 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (await which('python', { nothrow: true })) {
-      console.log("Python already installed")
+    if (await which('pyenv', { nothrow: true })) {
+      console.log("pyenv already installed,installing python...")
     }
     else {
-      const home = process.env.HOME
-      if (fs.existsSync(`${home}/.pyenv`)) {
-        console.log("pyenv already installed")
-      } else {
+      if (process.platform === 'win32') {
+        this._chocoInstallPackage(['pyenv-win'])
+      } else if (process.platform === 'linux') {
+        const home = process.env.HOME
         await $`curl https://pyenv.run | bash`.pipe(process.stderr)
         await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && 
             echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && 
             echo 'eval "$(pyenv init -)"' >> ~/.bashrc`.pipe(process.stderr)
       }
-      await $`source load_env.sh &&
+    }
+    await $`source load_env.sh &&
             pyenv install -s 3 && 
             pyenv global 3 &&
             curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+
+    if (process.platform == 'win32') {
+      await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py"`
     }
   }
 
@@ -317,35 +303,17 @@ class PackageManager {
 }
 
 async function main() {
-  const argv = minimist(process.argv.slice(2))
-
   const configModifier = new ConfigModifier()
   configModifier.modSystem()
 
   const packageManager = new PackageManager()
   await packageManager.detectSystemPackageManager()
   console.log(`Detected package manager: ${packageManager.packageManager}`)
-  if (argv._.length == 0) {
-    // Install all package
-    await packageManager.installToolchain()
-    await packageManager.installConfigPy()
-    await packageManager.installConan()
+  await packageManager.installToolchain()
+  await packageManager.installConfigPy()
+  await packageManager.installConan()
 
-    await configModifier.modConfig()
-  } else {
-    if (argv._.includes("toolchain")) {
-      await packageManager.installToolchain()
-    }
-    if (argv._.includes("configpy")) {
-      await packageManager.installConfigPy()
-    }
-    if (argv._.includes("conan")) {
-      await packageManager.installConan()
-    }
-    if (argv._.includes("config")) {
-      await configModifier.modConfig()
-    }
-  }
+  await configModifier.modConfig()
 }
 
 main()
