@@ -98,8 +98,9 @@ class PackageManager {
 
   installConan = async function () {
     if (findCmdsInEnv(['conan']).length == 0) {
-      console.log("Conan already installed")
+      console.log(chalk.greenBright("Conan already installed"))
     } else {
+      console.log(chalk.blueBright("Installing Conan..."))
       this._pipInstallPackage(['conan'])
     }
   }
@@ -131,16 +132,6 @@ class PackageManager {
       console.error("Unknown platform")
       process.exit(1)
     }
-  }
-
-  _chocoInstallPackage = async function (packageList: string[]) {
-    for (const pkg of packageList) {
-      await $`choco install -y ${pkg}`.pipe(process.stderr)
-    }
-  }
-
-  _chocoInstallPackageWithArgs = async function (pkg: string, args: string[]) {
-    await $`choco install -y ${pkg} ${args}`.pipe(process.stderr)
   }
 
   _aptInstallPackage = async function (packageList: string[]) {
@@ -183,7 +174,6 @@ async function main() {
   await packageManager.installToolchain()
   await packageManager.installConfigPy()
   await packageManager.installConan()
-
   await configModifier.modConfig()
 }
 
