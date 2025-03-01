@@ -145,7 +145,7 @@ class PackageManager {
   installToolchain = async function () {
     switch (this.packageManager) {
       case 'choco':
-        const pkgList = ['ninja', 'cmake', 'nsis']
+        const pkgList = ['ninja', 'cmake', 'nsis', ' ccache', 'cppcheck', 'opencppcoverage']
 
         const pkgNeedInstall = findCmdsInEnv(pkgList)
         console.log(chalk.blueBright("######## Installing packages: ", pkgNeedInstall, "#########"))
@@ -181,7 +181,8 @@ class PackageManager {
             pyenv global 3.10.5`.pipe(process.stderr)
     // work or not ?
     // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
-    await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile ${os.tmpdir()}/get-pip.py && python ${os.tmpdir()}/get-pip.py"`.pipe(process.stderr)
+    await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile ${os.tmpdir()}/get-pip.py ;
+            python ${os.tmpdir()}/get-pip.py"`.pipe(process.stderr)
   }
 
   installConan = async function () {

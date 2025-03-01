@@ -62,7 +62,7 @@ class PackageManager {
   installToolchain = async function () {
     switch (this.packageManager) {
       case 'apt':
-        await this._aptInstallPackage(['build-essential', 'cmake', 'ninja-build', 'zlib1g-dev', 'libffi-dev', 'libssl-dev', 'libbz2-dev', 'libreadline-dev', 'libsqlite3-dev',
+        await this._aptInstallPackage(['build-essential', 'cmake', 'ninja-build', 'ccache', 'cppcheck', 'gcovr', 'zlib1g-dev', 'libffi-dev', 'libssl-dev', 'libbz2-dev', 'libreadline-dev', 'libsqlite3-dev',
           'liblzma-dev', 'libncurses-dev', 'tk-dev'])
         break
       case 'pacman':
