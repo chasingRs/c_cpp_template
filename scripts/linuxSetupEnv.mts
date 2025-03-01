@@ -92,8 +92,10 @@ class PackageManager {
     }
     refreshEnv('source ~/.bashrc') //refresh environment, update PATH,etc
     await $`pyenv install -s 3.10.5 && 
-            pyenv global 3.10.5 &&
-            curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+            pyenv global 3.10.5`.pipe(process.stderr)
+    if (findCmdsInEnv(['pip']).length > 0) {
+      $`curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+    }
   }
 
   installConan = async function () {
@@ -101,7 +103,7 @@ class PackageManager {
       console.log(chalk.greenBright("Conan already installed"))
     } else {
       console.log(chalk.blueBright("Installing Conan..."))
-      this._pipInstallPackage(['conan'])
+      await this._pipInstallPackage(['conan'])
     }
   }
 
