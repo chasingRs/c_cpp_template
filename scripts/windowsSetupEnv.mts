@@ -237,7 +237,6 @@ async function main() {
   await packageManager.installToolchain()
   await packageManager.installConfigPy()
   await packageManager.installConan()
-
   await configModifier.modConfig()
 }
 
