@@ -170,21 +170,21 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (findCmdsInEnv(['pyenv'])) {
+    if (findCmdsInEnv(['pyenv']).length == 0) {
       console.log("pyenv already installed,installing python...")
     }
     else {
       this._chocoInstallPackage(['pyenv-win'])
     }
-    await $`pyenv install -s 3; 
-            pyenv global 3`.pipe(process.stderr)
+    await $`pyenv install -s 3.10.5; 
+            pyenv global 3.10.5`.pipe(process.stderr)
     // work or not ?
     // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
     await $`powershell -Command "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile ${os.tmpdir()}/get-pip.py && python ${os.tmpdir()}/get-pip.py"`.pipe(process.stderr)
   }
 
   installConan = async function () {
-    if (findCmdsInEnv(['conan'])) {
+    if (findCmdsInEnv(['conan']).length == 0) {
       console.log(chalk.green("Conan already installed"))
     } else {
       await this._chocoInstallPackage(['conan'])
@@ -193,7 +193,7 @@ class PackageManager {
 
   detectSystemPackageManager = async function () {
     if (process.platform === 'win32') {
-      if (findCmdsInEnv(['choco'])) {
+      if (findCmdsInEnv(['choco']).length == 0) {
         this.packageManager = 'choco'
       }
       else {
