@@ -172,8 +172,7 @@ class PackageManager {
   }
   _pipInstallPackage = async function (packageList: string[]) {
     for (const pkg of packageList) {
-      await $`source load_env.sh &&
-            pip install ${pkg}`.pipe(process.stderr)
+      await $`pip install ${pkg}`.pipe(process.stderr)
     }
   }
 }
