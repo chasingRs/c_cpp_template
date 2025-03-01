@@ -84,7 +84,7 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (this._checkExists('pyenv')) {
+    if (this._checkExists('pyenv') || fs.existsSync('${process.env.HOME}/.pyenv')) {
       console.log("pyenv already installed,installing python...")
     }
     else {
@@ -92,8 +92,8 @@ class PackageManager {
       await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && 
             echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && 
             echo 'eval "$(pyenv init -)"' >> ~/.bashrc`.pipe(process.stderr)
-      refreshEnv('source ~/.bashrc') //refresh environment, update PATH,etc
     }
+    refreshEnv('source ~/.bashrc') //refresh environment, update PATH,etc
     await $`pyenv install -s 3 && 
             pyenv global 3 &&
             curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
