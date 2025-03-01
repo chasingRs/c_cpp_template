@@ -170,11 +170,12 @@ class PackageManager {
       case 'choco':
         const pkgList = ['ninja', 'cmake', 'nsis']
         const pkgNeedInstall = pkgList.filter((pkg) => {
-          if (this.commandExists(pkg) == true) {
+          const resolveOrNull = which.sync(pkg, { nothrow: true })
+          if (resolveOrNull === null) {
+            return true
+          } else {
             console.log(`${pkg} already installed`)
             return false
-          } else {
-            return true
           }
         })
         console.log("######## Installing packages: ", pkgNeedInstall, "#########")
@@ -209,20 +210,6 @@ class PackageManager {
       default:
         console.error("Unknown package manager")
         process.exit(1)
-    }
-  }
-
-  commandExists = function (command: string) {
-    try {
-      if (process.platform === 'win32') {
-        $.sync`gcm -All ${command}`;
-        return true;
-      } else {
-        $.sync`which ${command}`;
-        return true;
-      }
-    } catch {
-      return false;
     }
   }
 
