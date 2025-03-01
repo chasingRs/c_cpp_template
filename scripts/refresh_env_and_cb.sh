@@ -2,7 +2,7 @@
 source ~/.bashrc
 
 if [ -z "$1" ]; then
-    echo "请提供要执行的文件路径作为参数。"
+    echo "Error: please provide the file path to execute"
     exit 1
 fi
 

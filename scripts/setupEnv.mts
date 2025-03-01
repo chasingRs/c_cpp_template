@@ -317,17 +317,35 @@ class PackageManager {
 }
 
 async function main() {
+  const argv = minimist(process.argv.slice(2))
+
   const configModifier = new ConfigModifier()
   configModifier.modSystem()
 
   const packageManager = new PackageManager()
   await packageManager.detectSystemPackageManager()
   console.log(`Detected package manager: ${packageManager.packageManager}`)
-  await packageManager.installToolchain()
-  await packageManager.installConfigPy()
-  await packageManager.installConan()
+  if (argv._.length == 0) {
+    // Install all package
+    await packageManager.installToolchain()
+    await packageManager.installConfigPy()
+    await packageManager.installConan()
 
-  await configModifier.modConfig()
+    await configModifier.modConfig()
+  } else {
+    if (argv._.includes("toolchain")) {
+      await packageManager.installToolchain()
+    }
+    if (argv._.includes("configpy")) {
+      await packageManager.installConfigPy()
+    }
+    if (argv._.includes("conan")) {
+      await packageManager.installConan()
+    }
+    if (argv._.includes("config")) {
+      await configModifier.modConfig()
+    }
+  }
 }
 
 main()

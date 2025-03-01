@@ -1,5 +1,6 @@
 import child_process from "child_process";
 import process from "process";
+import { refreshEnv } from "./refreshenv.mts";
 
 const PROGRAM_FILES_X86 = process.env["ProgramFiles(x86)"];
 const PROGRAM_FILES = [
@@ -118,21 +119,6 @@ export function findVcvarsall(vsversion, vspath) {
   throw new Error("Microsoft Visual Studio not found");
 }
 
-function isPathVariable(name) {
-  const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
-  return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
-}
-
-function filterPathValue(path) {
-  let paths = path.split(";");
-  // Remove duplicates by keeping the first occurance and preserving order.
-  // This keeps path shadowing working as intended.
-  function unique(value, index, self) {
-    return self.indexOf(value) === index;
-  }
-  return paths.filter(unique).join(";");
-}
-
 /** See https://github.com/ilammy/msvc-dev-cmd#inputs */
 export function setupMSVCDevCmd(
   arch,
@@ -183,65 +169,6 @@ export function setupMSVCDevCmd(
 
   const vcvars = `"${findVcvarsall(vsversion, vspath)}" ${args.join(" ")}`;
   console.debug(`vcvars command-line: ${vcvars}`);
-
-  const cmd_output_string = child_process
-    .execSync(`set && cls && ${vcvars} && cls && set`, { shell: "cmd" })
-    .toString();
-  const cmd_output_parts = cmd_output_string.split("\f");
-
-  const old_environment = cmd_output_parts[0].split("\r\n");
-  const vcvars_output = cmd_output_parts[1].split("\r\n");
-  const new_environment = cmd_output_parts[2].split("\r\n");
-
-  // If vsvars.bat is given an incorrect command line, it will print out
-  // an error and *still* exit successfully. Parse out errors from output
-  // which don't look like environment variables, and fail if appropriate.
-  const error_messages = vcvars_output.filter((line) => {
-    if (line.match(/^\[ERROR.*\]/)) {
-      // Don't print this particular line which will be confusing in output.
-      if (!line.match(/Error in script usage. The correct usage is:$/)) {
-        return true;
-      }
-    }
-    return false;
-  });
-  if (error_messages.length > 0) {
-    throw new Error(
-      "invalid parameters" + "\r\n" + error_messages.join("\r\n")
-    );
-  }
-
-  // Convert old environment lines into a dictionary for easier lookup.
-  let old_env_vars = {};
-  for (let string of old_environment) {
-    const [name, value] = string.split("=");
-    old_env_vars[name] = value;
-  }
-
-  // Now look at the new environment and export everything that changed.
-  // These are the variables set by vsvars.bat. Also export everything
-  // that was not there during the first sweep: those are new variables.
-  for (let string of new_environment) {
-    // vsvars.bat likes to print some fluff at the beginning.
-    // Skip lines that don't look like environment variables.
-    if (!string.includes("=")) {
-      continue;
-    }
-    let [name, new_value] = string.split("=");
-    let old_value = old_env_vars[name];
-    // For new variables "old_value === undefined".
-    if (new_value !== old_value) {
-      // Special case for a bunch of PATH-like variables: vcvarsall.bat
-      // just prepends its stuff without checking if its already there.
-      // This makes repeated invocations of this action fail after some
-      // point, when the environment variable overflows. Avoid that.
-      if (isPathVariable(name)) {
-        new_value = filterPathValue(new_value);
-      }
-      // core.exportVariable(name, new_value)
-      process.env[name] = new_value;
-    }
-  }
-
+  refreshEnv(vcvars, /^\[ERROR.*\]/)
   console.info(`Configured Developer Command Prompt`);
 }

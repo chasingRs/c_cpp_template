@@ -3,12 +3,12 @@ Import-Module "$env:ChocolateyInstall/helpers/chocolateyInstaller.psm1"
 refreshenv
 # 检查是否提供了参数
 if (-not $args) {
-    Write-Host "请提供要执行的文件路径作为参数。"
+    Write-Host "Error: please provide the file path to execute"
     exit 1
 }
 
 Write-Host "running: $args"
 
 # 执行参数中指定的命令
-& $args
+& $args[0] $args[1..$args.Length]
 

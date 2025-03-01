@@ -4,7 +4,6 @@ if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     $Env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
-
 # Install Node.js using Chocolatey if not already installed
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     choco install -y nodejs-lts
