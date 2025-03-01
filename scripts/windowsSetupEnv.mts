@@ -145,7 +145,7 @@ class PackageManager {
   installToolchain = async function () {
     switch (this.packageManager) {
       case 'choco':
-        const pkgList = ['ninja', 'cmake', 'nsis', ' ccache', 'cppcheck', 'opencppcoverage']
+        const pkgList = ['ninja', 'cmake', 'nsis', 'ccache', 'cppcheck', 'opencppcoverage']
 
         const pkgNeedInstall = findCmdsInEnv(pkgList)
         console.log(chalk.blueBright("######## Installing packages: ", pkgNeedInstall, "#########"))
