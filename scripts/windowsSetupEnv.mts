@@ -59,35 +59,6 @@ tools.microsoft.msbuild:installation_path=${MSVCInstallDir}/buildTools`)
       }
       console.log(`Stdout: ${stdout}`);
     });
-
-    // const components = [
-    //   { name: 'SharedInstallationPath', path: MSVCInstallDir + '\\shared' },
-    //   { name: 'VCInstallDir', path: MSVCInstallDir + '\\VC' },
-    //   { name: 'SDKInstallDir', path: MSVCInstallDir + '\\SDK' },
-    //   // Add more components as needed
-    // ];
-    //
-    // registryPath = 'HKLM\\SOFTWARE\\Microsoft\\VisualStudio\\Setup';
-    // valueType = 'REG_SZ'; // Can be REG_SZ, REG_DWORD, etc.
-    //
-    // components.forEach(component => {
-    //   const valueName = component.name;
-    //   const valueData = component.path;
-    //   const regAddCommand = `reg add "${registryPath}" /v "${valueName}" /t ${valueType} /d "${valueData}" /f`;
-    //
-    //   exec(regAddCommand, (error, stdout, stderr) => {
-    //     if (error) {
-    //       console.error(`Error: ${error.message}`);
-    //       return;
-    //     }
-    //     if (stderr) {
-    //       console.error(`Stderr: ${stderr}`);
-    //       return;
-    //     }
-    //     console.log(`Stdout: ${stdout}`);
-    //   });
-    // });
-
   }
   // For windows to use PowerShell to invoke .bat script with environment variables saved
   private modPowerShell = async function () {
@@ -121,18 +92,6 @@ function Invoke-Environment {
     }
   }
 }
-
-// class setupCpp {
-//   async run() {
-//     // WARN: Need to source ~/.cpprc # activate cpp environment variables
-//     if (process.platform === 'win32') {
-//       await $`npx setup-cpp --compiler msvc-2022 --vcvarsall true --cmake true --conan true --ninja true --ccache true`.pipe(process.stderr)
-//     }
-//     else if (process.platform === 'linux') {
-//       await $`sudo npx setup-cpp --compiler gcc --cmake true --conan true --ninja true --ccache true`.pipe(process.stderr)
-//     }
-//   }
-// }
 
 class PackageManager {
   packageManager: string
@@ -224,15 +183,14 @@ class PackageManager {
 
 async function main() {
   const configModifier = new ConfigModifier()
-  configModifier.modSystem()
-
+  configModifier.preInstallMod()
   const packageManager = new PackageManager()
   await packageManager.detectSystemPackageManager()
   console.log(`Detected package manager: ${packageManager.packageManager}`)
   await packageManager.installToolchain()
   await packageManager.installConfigPy()
   await packageManager.installConan()
-  await configModifier.modConfig()
+  await configModifier.postInstallMod()
 }
 
 main()
