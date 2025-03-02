@@ -27,7 +27,7 @@ class ConfigModifier {
   }
   // For linux to use System package manager to install packages
   private modConan = async function () {
-    const conanHome = `${process.env.HOME}/.conan2`
+    const conanHome = `${os.homedir()}/.conan2`
     await $`conan profile detect --force`.pipe(process.stderr)
     const content = fs.readFileSync(`${conanHome}/global.conf`, 'utf8')
     if (content.includes("tools.build:skip_test")) {
