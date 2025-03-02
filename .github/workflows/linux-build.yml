@@ -34,7 +34,7 @@ jobs:
           envFile: ".github/constants.env"
 
       - name: Setup Cache
-        uses: ./.github/actions/setup_cache
+        uses: ./.github/actions/linux_setup_cache
         with:
           compiler: ${{ matrix.compiler }}
           cmake_preset: ${{ matrix.cmake_preset }}
