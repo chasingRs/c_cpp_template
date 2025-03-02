@@ -177,9 +177,9 @@ class PackageManager {
     else {
       await this._chocoInstallPackage(['pyenv-win'])
     }
-    await $`pyenv install -s 3.10.5; 
-            pyenv global 3.10.5`.pipe(process.stderr)
-    await $`python -m ensurepip --upgrade`.pipe(process.stderr)
+    await $`pyenv install -s 3.10.5`.pipe(process.stderr)
+    await $`pyenv global 3.10.5`.pipe(process.stderr)
+    await $`python.bat -m ensurepip --upgrade`.pipe(process.stderr)
   }
 
   installConan = async function () {
