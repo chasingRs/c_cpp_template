@@ -55,7 +55,7 @@ Now you can clone the project locally and get to work!
 
 #### Packages management
 
-1. Adding your the packages you needed to conandata.yml
+1. Adding the packages you need to conandata.yml
 2. Modify the CMakeLists.txt in src/dir_name_add_by_user to link the target lib
 3. Conan will try to automatically manage these dependencies
 
