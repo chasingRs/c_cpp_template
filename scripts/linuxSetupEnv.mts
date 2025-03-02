@@ -74,6 +74,7 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
+    refreshEnv('source ~/.profile')
     if (findCmdsInEnv(['pyenv']).length == 0 || fs.existsSync(`${os.homedir()}/.pyenv`)) {
       console.log("pyenv already installed,installing python...")
     }

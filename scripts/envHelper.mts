@@ -3,7 +3,6 @@ import process from "process";
 
 // Check cmd in env, return the cmd list that not found
 export function findCmdsInEnv(cmdList: string[]) {
-  refreshEnv('source ~/.profile')
   let not_found_cmds = cmdList.filter((cmd) => {
     return which.sync(cmd, { nothrow: true }) === null
   })
