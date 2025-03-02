@@ -1,9 +1,9 @@
 # cmake_template
 
-[![windows-build](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/windows-build.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/windows-build.yml)
-[![linux-build](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/linux-build.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/linux-build.yml)
-[![codecov](https://codecov.io/gh/%%myorg%%/%%myproject%%/branch/main/graph/badge.svg)](https://codecov.io/gh/cpp-best-practices/cmake_template)
-[![CodeQL](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/cpp-best-practices/cmake_template/actions/workflows/codeql-analysis.yml)
+[![windows-build](https://github.com/PongKJ/c_cpp_template/actions/workflows/windows-build.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/windows-build.yml)
+[![linux-build](https://github.com/PongKJ/c_cpp_template/actions/workflows/linux-build.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/linux-build.yml)
+[![codecov](https://codecov.io/gh/PongKJ/c_cpp_template/branch/main/graph/badge.svg)](https://codecov.io/gh/PongKJ/c_cpp_template)
+[![CodeQL](https://github.com/PongKJ/c_cpp_template/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/codeql-analysis.yml)
 
 ## About cmake_template
 
@@ -14,18 +14,22 @@ By default (collectively known as `ENABLE_DEVELOPER_MODE`)
 - Address Sanitizer and Undefined Behavior Sanitizer enabled where possible
 - Warnings as errors
 - clang-tidy and cppcheck static analysis
-- CPM for dependencies
+- conan for dependencies management
 
 It includes
 
 - a basic CLI example
 - examples for fuzz, unit, and constexpr testing
 - large GitHub action testing matrix
+- opencv package build managed by conan
 
 It requires
 
 - cmake
+- ninja
 - a compiler
+- conan
+- node
 
 This project gets you started with a simple example of using FTXUI, which happens to also be a game.
 
@@ -47,6 +51,62 @@ Now you can clone the project locally and get to work!
 
     git clone https://github.com/<user>/<your_new_repo>.git
 
+### How to use
+
+#### Packages management
+
+1. Adding your the packages you needed to conandata.yml
+2. Modify the CMakeLists.txt in src/dir_name_add_by_user to link the target lib
+3. Conan will try to automatically manage these dependencies
+
+#### Build your project
+1. Firstly,install Prerequisities:
+
+For windows:
+`choco`
+`node,npm`
+`tsx`: `npm i -g tsx`
+`MSVC-2022`
+`cmake`
+`ninja`
+`python,pip`
+`conan`
+`OpenCppCoverage`(optional)
+`ccache`(optional)
+
+you can run following command to install these prerequisities:
+```bat
+cd ./scripts
+./setup.bat
+```
+--------------------
+For linux:
+`node,npm`
+`tsx`: `npm i -g tsx`
+`gcc,g++`
+`python,pip`
+`cmake`
+`ninja`
+`conan`
+`opencc`
+`gcovr`(optional)
+`ccache`(optional)
+
+you can run following command to install these prerequisities:
+```sh
+cd ./scripts
+./setup.sh
+```
+2. Run script to build, test and pack
+``` sh
+# Chose 'unixlike-gcc-debug' as cmake preset to setup, possible choice are: 'unixlike-gcc-release', 
+# 'windows-msvc-debug-developer-mode','windows-msvc-release-developer-mode'
+tsx project.mts setup unixlike-gcc-debug
+tsx project.mts config
+tsx project.mts build
+tsx project.mts test
+tsx project.mts pack
+```
 ## More Details
 
 - [Dependency Setup](README_dependencies.md)
