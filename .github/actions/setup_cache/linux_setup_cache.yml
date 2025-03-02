@@ -1,0 +1,26 @@
+name: "linux_setup_cache"
+description: "sets up the shared cache"
+inputs:
+  compiler:
+    required: true
+    type: string
+  cmake_preset:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache
+      uses: actions/cache@v3
+      with:
+        # You might want to add .ccache to your cache configuration?
+        path: |
+          ~/.cache/pip
+          ~/.ccache
+          ~/.conan2
+          ~/.profile
+          ~/.pyenv
+        key: ${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.cmake_preset }}-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.cmake_preset }}

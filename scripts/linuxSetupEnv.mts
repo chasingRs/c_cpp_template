@@ -1,10 +1,7 @@
-import { exec } from 'child_process';
 import 'zx/globals';
-import { MSVCInstallDir } from './consts.mjs';
-import { findVcvarsall } from "./setupMSVCDev.mjs"
 import { findCmdsInEnv, refreshEnv } from './envHelper.mts';
 
-if (process.platform === 'win32') {
+if (process.platform !== 'linux') {
   console.error("This script is for Linux only,run 'windowsSetupEnv.mts' instead")
   process.exit(1)
 }
@@ -14,16 +11,12 @@ class ConfigModifier {
   constructor() {
     this.paltform = process.platform
   }
-  modSystem = async function () {
-    // await this.modLinux()
+  preInstallMod = async function () {
+    // TODO: Change some configs before installing packages
   }
-  modConfig = async function () {
-    await this.unixMod()
-  }
-  private unixMod = async function () {
+  postInstallMod = async function () {
     await this.modConan()
   }
-  // For linux to use System package manager to install packages
   private modConan = async function () {
     const conanHome = `${os.homedir()}/.conan2`
     await $`conan profile detect --force`.pipe(process.stderr)
@@ -169,14 +162,14 @@ class PackageManager {
 
 async function main() {
   const configModifier = new ConfigModifier()
-  configModifier.modSystem()
+  configModifier.preInstallMod()
   const packageManager = new PackageManager()
   await packageManager.detectSystemPackageManager()
-  console.log(`Detected package manager: ${packageManager.packageManager}`)
+  console.log(chalk.blue(`Detected package manager: ${packageManager.packageManager}`))
   await packageManager.installToolchain()
   await packageManager.installConfigPy()
   await packageManager.installConan()
-  await configModifier.modConfig()
+  await configModifier.postInstallMod()
 }
 
 main()

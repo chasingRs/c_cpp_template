@@ -26,6 +26,11 @@ jobs:
         cmake_preset:
           - "unixlike-gcc-debug"
     steps:
+      - name: Project Name
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ".github/constants.env"
+
       - uses: actions/checkout@v4
 
       - name: Setup Cache

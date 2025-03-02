@@ -19,6 +19,8 @@ runs:
           ~/.cache/pip
           ~/.ccache
           ~/.conan2
+          C:/${{env.MSVC_INSTALL_DIR}}
+          C:/Program Files (x86)/Windows Kits
         key: ${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.cmake_preset }}-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('conanfile.py') }}
         restore-keys: |
           ${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.cmake_preset }}

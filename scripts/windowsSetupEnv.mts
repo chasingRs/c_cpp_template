@@ -4,7 +4,7 @@ import 'zx/globals';
 import { MSVCInstallDir } from './consts.mjs';
 import { findCmdsInEnv, refreshEnv } from './envHelper.mjs'
 
-if (process.platform != 'win32') {
+if (process.platform !== 'win32') {
   console.error(chalk.red("This script is for Windows only,run 'linuxSetupEnv.mts' instead"))
 }
 usePowerShell()
@@ -14,18 +14,14 @@ class ConfigModifier {
   constructor() {
     this.paltform = process.platform
   }
-  modSystem = async function () {
+  preInstallMod = async function () {
+    // TODO: Change some configs before installing packages
     // BUG : This cause msvc toolchain broken
     // await this.modWindowsRegistry()
   }
-  modConfig = async function () {
+  postInstallMod = async function () {
     await this.modConan()
-    await this.windowsMod()
   }
-  private windowsMod = async function () {
-    // await this.modPowerShell()
-  }
-  // For linux to use System package manager to install packages
   private modConan = async function () {
     const conanHome = `${os.homedir()}/.conan2`
     await $`conan profile detect --force`.pipe(process.stderr)
