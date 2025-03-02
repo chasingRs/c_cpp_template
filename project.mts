@@ -228,7 +228,7 @@ class Excutor {
   runTestAndCov = async function () {
     this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.projectConfigs.configureConfig.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}"`
+      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.projectConfigs.configureConfig.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.projectConfigs.testConfig.ctestArgs}"`
       await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
     } else {
       await $`ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}`.pipe(process.stderr)
