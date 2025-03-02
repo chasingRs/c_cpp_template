@@ -6,6 +6,8 @@ import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
 import { usePowerShell } from 'zx';
 import { findCmdsInEnv, refreshEnv } from './scripts/envHelper.mts'
 
+const configPath = 'setup_cache.json'
+const presetsFile = 'CMakePresets.json'
 let script_postfix = ''
 
 if (process.platform === 'win32') {
@@ -139,7 +141,7 @@ class ProjectConfigs {
     this.testConfig = {
       ctestArgs: "",
     }
-    this._save2File('project.json')
+    this._save2File(configPath)
   }
 
   _save2File = function (filePath: PathOrFileDescriptor) {
@@ -307,8 +309,6 @@ async function main() {
       refreshEnv('source ~/.profile')
     }
   }
-  const configPath = 'project.json'
-  const presetsFile = 'CMakePresets.json'
 
   console.log(argv)
   if (argv._.length == 0 || argv.h || argv.help) {
