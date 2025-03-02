@@ -1,7 +1,5 @@
 # This workflow should cleanup everything unneeded from the template project
-
 name: Template Janitor
-
 on:
   pull_request:
   release:
@@ -24,12 +22,8 @@ jobs:
       matrix:
         compiler:
           - gcc-13
-        generator:
-          - "Unix Makefiles"
-        build_type:
-          - Debug
-        developer_mode:
-          - OFF
+        cmake_preset:
+          - "unixlike-gcc-debug"
 
     steps:
       - uses: actions/checkout@v3
@@ -38,9 +32,7 @@ jobs:
         uses: ./.github/actions/setup_cache
         with:
           compiler: ${{ matrix.compiler }}
-          build_type: ${{ matrix.build_type }}
-          developer_mode: ${{ matrix.developer_mode }}
-          generator: ${{ matrix.generator }}
+          cmake_preset: ${{ matrix.cmake_preset }}
 
       - name: Get organization and project name
         run: |
@@ -105,31 +97,21 @@ jobs:
           # Remove this workflow as it has fulfilled its purpose
           rm .github/workflows/template-janitor.yml
 
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: ${{ matrix.compiler }}
-
-          cmake: true
-          ninja: false
-          vcpkg: false
-          ccache: false
-          clangtidy: false
-          cppcheck: false
-          gcovr: false
-          conan: true
-          opencppcoverage: false
-
       - name: Project Name
         uses: cardinalby/export-env-action@v2
         with:
           envFile: ".github/constants.env"
 
+      - name: Setup Tools
+        working-directory: ./scripts
+        run: |
+          ./setup.sh
+
       - name: Test simple configuration to make sure nothing broke
         run: |
-          cmake -S . -B ./build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -D${{ env.NEW_SAFE_PROJECT }}_PACKAGING_MAINTAINER_MODE:BOOL=ON
-          # Build it because we may have broken something in the cpp/hpp files
-          cmake --build build
+          tsx project.mts setup ${{matrix.cmake_preset}}
+          tsx project.mts config
+          tsx project.mts build
 
       - uses: EndBug/add-and-commit@v9
         # only commit and push if we are not a template project anymore!
@@ -150,12 +132,8 @@ jobs:
       matrix:
         compiler:
           - gcc-13
-        generator:
-          - "Unix Makefiles"
-        build_type:
-          - Debug
-        developer_mode:
-          - OFF
+        cmake_preset:
+          - "unixlike-gcc-debug"
 
     steps:
       - uses: actions/checkout@v3
@@ -164,9 +142,7 @@ jobs:
         uses: ./.github/actions/setup_cache
         with:
           compiler: ${{ matrix.compiler }}
-          build_type: ${{ matrix.build_type }}
-          developer_mode: ${{ matrix.developer_mode }}
-          generator: ${{ matrix.generator }}
+          cmake_preset: ${{ matrix.cmake_preset }}
 
       - name: Get organization and project name
         run: |
@@ -205,24 +181,16 @@ jobs:
         run: |
           git diff
 
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: gcc
-
-          cmake: true
-          ninja: false
-          vcpkg: false
-          ccache: false
-          clangtidy: false
-          cppcheck: false
-          gcovr: false
-          conan: true
-          opencppcoverage: false
+      - name: Setup Tools
+        working-directory: ./scripts
+        run: |
+          ./setup.sh
 
       - name: Test simple configuration to make sure nothing broke (default compiler,cmake,developer_mode OFF)
         run: |
-          cmake -S . -B ./build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -D${{ env.PROJECT_NAME }}_PACKAGING_MAINTAINER_MODE:BOOL=ON
+          tsx project.mts setup ${{matrix.cmake_preset}}
+          tsx project.mts config
+          tsx project.mts build
 
       - uses: EndBug/add-and-commit@v9
         # only commit and push if we are a template and project name has changed

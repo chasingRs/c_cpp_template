@@ -34,6 +34,8 @@ class ConfigModifier {
       console.log(chalk.green("conan global config already configured"))
       return
     } else {
+      // INFO: Need to set 'tools.microsoft.msbuild:installation_path', if you have multiple MSVC installed
+      // otherwise, msvcDevCmd.bat may complain some errors
       fs.appendFileSync(`${conanHome}/global.conf`, `
 tools.build:skip_test = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}/buildTools`)

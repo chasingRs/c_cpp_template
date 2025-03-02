@@ -20,7 +20,7 @@ endmacro()
 macro(myproject_setup_options)
   # NOTE: enable hardening may cause build failed in debug mode
   option(myproject_ENABLE_HARDENING "Enable hardening" OFF)
-  option(myproject_ENABLE_COVERAGE "Enable coverage reporting" OFF)
+  option(myproject_ENABLE_COVERAGE "Enable coverage reporting" ON)
   cmake_dependent_option(
     myproject_ENABLE_GLOBAL_HARDENING
     "Attempt to push hardening options to built dependencies"
