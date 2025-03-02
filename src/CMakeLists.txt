@@ -1,2 +1,3 @@
 add_subdirectory(json_parser)
 add_subdirectory(sample_library)
+add_subdirectory(opencv_test)

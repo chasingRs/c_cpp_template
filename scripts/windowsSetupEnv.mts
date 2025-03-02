@@ -171,13 +171,6 @@ class PackageManager {
   }
 
   installConfigPy = async function () {
-    if (findCmdsInEnv(['curl']).length == 0) {
-      console.log("curl already installed,installing python...")
-    }
-    else {
-      await this._chocoInstallPackage(['curl'])
-    }
-
     if (findCmdsInEnv(['pyenv']).length == 0) {
       console.log("pyenv already installed,installing python...")
     }
@@ -186,9 +179,7 @@ class PackageManager {
     }
     await $`pyenv install -s 3.10.5; 
             pyenv global 3.10.5`.pipe(process.stderr)
-    // work or not ?
-    // curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
-    await $`curl https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+    await $`python -m ensurepip --upgrade`.pipe(process.stderr)
   }
 
   installConan = async function () {

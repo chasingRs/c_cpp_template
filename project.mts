@@ -6,15 +6,21 @@ import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
 import { usePowerShell } from 'zx';
 import { findCmdsInEnv, refreshEnv } from './scripts/envHelper.mts'
 
+let script_postfix = ''
+
 if (process.platform === 'win32') {
   usePowerShell()
+  script_postfix = 'bat'
 }
 
 // default is "set -euo pipefail;",
 // `-u`: Treat unset variables as an error and exit immediately.
-if (process.platform != 'win32') {
+if (process.platform === 'linux') {
   $.prefix = "set -eo pipefail;"
+  script_postfix = 'sh'
 }
+
+
 
 function parseJson(json: PathOrFileDescriptor) {
   try {
@@ -152,6 +158,15 @@ class Excutor {
     this.projectConfigs = config
   }
 
+  _refreshEnvFromScript = function (script: string) {
+    if (process.platform === 'win32') {
+      refreshEnv(script)
+    }
+    else if (process.platform === 'linux') {
+      refreshEnv(`source ${script}`)
+    }
+  }
+
   clean = async function () {
     if (fs.existsSync(this.projectConfigs.configureConfig.binaryDir)) {
       await fs.remove(this.projectConfigs.configureConfig.binaryDir)
@@ -179,6 +194,8 @@ class Excutor {
   }
 
   cmakeBuild = async function () {
+    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanbuild.${script_postfix}`)
+    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (this.projectConfigs.configureConfig.preset.includes('msvc')) {
       setupMSVCDevCmd(
         "x64",
@@ -189,8 +206,7 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeBuildCommand = `"Invoke-Environment ${this.projectConfigs.configureConfig.binaryDir}\\conan\\build\\${this.projectConfigs.configureConfig.buildType}\\generators\\conanrun.bat;cmake --build ${this.projectConfigs.configureConfig.binaryDir} --target ${this.projectConfigs.buildConfig.target}"`
-
+      const cmakeBuildCommand = `"cmake --build ${this.projectConfigs.configureConfig.binaryDir} --target ${this.projectConfigs.buildConfig.target}"`
       await $`powershell -Command ${cmakeBuildCommand}`.pipe(process.stderr)
     } else {
       await $`cmake --build ${this.projectConfigs.configureConfig.binaryDir} --target ${this.projectConfigs.buildConfig.target} `.pipe(process.stderr)
@@ -198,26 +214,37 @@ class Excutor {
   }
 
   runTarget = async function () {
+    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTargetCommand = `"Invoke-Environment ${this.projectConfigs.configureConfig.binaryDir}\\conan\\build\\${this.projectConfigs.configureConfig.buildType}\\generators\\conanrun.bat;${this.projectConfigs.configureConfig.binaryDir}\\bin\\${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}"`
+      const runTargetCommand = `"${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}"`
       await $`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
     } else {
-      await $`source ${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.sh && ${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}`.pipe(process.stderr)
+      await $`${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}`.pipe(process.stderr)
     }
   }
 
   runTest = async function () {
+    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"Invoke-Environment ${this.projectConfigs.configureConfig.binaryDir}\\conan\\build\\${this.projectConfigs.configureConfig.buildType}\\generators\\conanrun.bat;ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}"`
+      const runTestCommand = `"Invoke-Environment ${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.bat;ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}"`
       await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
     } else {
       await $`source ${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.sh && ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}`.pipe(process.stderr)
     }
   }
 
+  install = async function () {
+    if (process.platform === 'win32') {
+      const cpackCommand = `"cmake --install ${this.projectConfigs.configureConfig.binaryDir}"`
+      await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
+    } else {
+      await $`cmake --install ${this.projectConfigs.configureConfig.binaryDir}`.pipe(process.stderr)
+    }
+  }
+
   cpack = async function () {
     if (process.platform === 'win32') {
-      const cpackCommand = `"Invoke-Environment ${this.projectConfigs.configureConfig.binaryDir}\\conan\\build\\${this.projectConfigs.configureConfig.buildType}\\generators\\conanrun.bat;cd ${this.projectConfigs.configureConfig.binaryDir};cpack"`
+      const cpackCommand = `"cd ${this.projectConfigs.configureConfig.binaryDir};cpack"`
       await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
     } else {
       await $`cd ${this.projectConfigs.configureConfig.binaryDir} && cpack`.pipe(process.stderr)
@@ -269,7 +296,7 @@ function showHelp() {
 
 async function main() {
   // To avoid user not reload the ternimal after install tools,refresh the env
-  let cmdNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ccache', 'ctest'])
+  let cmdNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ctest']) // 'ccache'
   if (cmdNotFound.length > 0) {
     console.log(chalk.redBright(`Some commands not found in path:${cmdNotFound} ,Tring reload the environment...`))
     if (process.platform === 'win32') {
@@ -337,8 +364,8 @@ async function main() {
     case 'build':
       console.log('Building project...')
       if (myArgv._.length > 1) {
-        console.log('building target:', myArgv._[0])
-        changeConfig.buildConfig.target = myArgv._[0]
+        console.log('building target:', myArgv._[1])
+        changeConfig.buildConfig.target = myArgv._[1]
       } else {
         console.log("Building all targets")
         changeConfig.buildConfig.target = 'all'
@@ -370,6 +397,10 @@ async function main() {
         config.changeConfig(changeConfig)
         await excutor.runTest()
       }
+      break
+    case 'install':
+      console.log('Packing project...')
+      await excutor.install()
       break
     case 'pack':
       console.log('Packing project...')

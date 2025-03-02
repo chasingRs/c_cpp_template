@@ -83,7 +83,7 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
       if (isPathVariable(name)) {
         new_value = filterPathValue(new_value);
       }
-      console.log(`export ${name}=${new_value}`);
+      // console.log(chalk.hex('#2EA51D')(`export ${name}=${new_value}`));
       process.env[name] = new_value;
     }
   }

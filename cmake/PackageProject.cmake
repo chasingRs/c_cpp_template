@@ -162,8 +162,8 @@ function(myproject_package_project)
     [[libstdc\+\+\.so\..*]]
     POST_EXCLUDE_REGEXES
     [[.*/system32/.*\.dll]]
-    [[^/lib.*]]
-    [[^/usr/lib.*]]
+    # [[^/lib.*]]
+    # [[^/usr/lib.*]]
     DIRECTORIES
     ${CONAN_RUNTIME_LIB_DIRS})
   set(_targets_str "")

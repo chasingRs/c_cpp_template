@@ -23,6 +23,7 @@ project(
 # TODO:currently in develop mode, should be removed in productive environment
 set(myproject_PACKAGING_MAINTAINER_MODE ON)
 
+
 include(cmake/PreventInSourceBuilds.cmake)
 include(ProjectOptions.cmake)
 
@@ -31,6 +32,8 @@ myproject_setup_options()
 myproject_global_options()
 
 myproject_local_options()
+
+
 
 # don't know if this should be set globally from here or not...
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -102,7 +105,7 @@ include(cmake/PackageProject.cmake)
 myproject_package_project(
   TARGETS
   json_parser
-  # opencv_practice
+  opencv_test
   # myproject_options
   # myproject_warnings
   # FIXME: this does not work! CK PRIVATE_DEPENDENCIES_CONFIGURED project_options project_warnings

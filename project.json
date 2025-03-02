@@ -11,7 +11,7 @@
     "target": "all"
   },
   "launchConfig": {
-    "target": "json_parser",
+    "target": "",
     "args": ""
   },
   "testConfig": {

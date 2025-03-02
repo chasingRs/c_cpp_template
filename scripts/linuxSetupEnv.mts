@@ -94,7 +94,7 @@ class PackageManager {
     await $`pyenv install -s 3.10.5 && 
             pyenv global 3.10.5`.pipe(process.stderr)
     if (findCmdsInEnv(['pip']).length > 0) {
-      $`curl -s https://bootstrap.pypa.io/get-pip.py | python`.pipe(process.stderr)
+      await $`python -m ensurepip --upgrade`.pipe(process.stderr)
     }
   }
 

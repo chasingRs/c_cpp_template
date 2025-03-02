@@ -35,10 +35,20 @@ set(CONAN_MINIMUM_VERSION 2.0.5)
 cmake_policy(PUSH)
 cmake_minimum_required(VERSION 3.24)
 
-function(detect_os OS OS_API_LEVEL OS_SDK OS_SUBSYSTEM OS_VERSION)
+function(
+  detect_os
+  OS
+  OS_API_LEVEL
+  OS_SDK
+  OS_SUBSYSTEM
+  OS_VERSION)
   # it could be cross compilation
   message(STATUS "CMake-Conan: cmake_system_name=${CMAKE_SYSTEM_NAME}")
-  if(CMAKE_SYSTEM_NAME AND NOT CMAKE_SYSTEM_NAME STREQUAL "Generic")
+  if(CMAKE_SYSTEM_NAME
+     AND NOT
+         CMAKE_SYSTEM_NAME
+         STREQUAL
+         "Generic")
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
       set(${OS}
           Macos
@@ -68,7 +78,11 @@ function(detect_os OS OS_API_LEVEL OS_SDK OS_SUBSYSTEM OS_VERSION)
     endif()
     if(CMAKE_SYSTEM_NAME STREQUAL "Android")
       if(DEFINED ANDROID_PLATFORM)
-        string(REGEX MATCH "[0-9]+" _OS_API_LEVEL ${ANDROID_PLATFORM})
+        string(
+          REGEX MATCH
+                "[0-9]+"
+                _OS_API_LEVEL
+                ${ANDROID_PLATFORM})
       elseif(DEFINED CMAKE_SYSTEM_VERSION)
         set(_OS_API_LEVEL ${CMAKE_SYSTEM_VERSION})
       endif()
@@ -117,18 +131,24 @@ function(detect_arch ARCH)
   # Therefore this code only finds one. If the recipes support multiple architectures, the build
   # will work. Otherwise, there will be a linker error for the missing architecture(s).
   if(DEFINED CMAKE_OSX_ARCHITECTURES)
-    string(REPLACE " " ";" apple_arch_list "${CMAKE_OSX_ARCHITECTURES}")
+    string(
+      REPLACE " "
+              ";"
+              apple_arch_list
+              "${CMAKE_OSX_ARCHITECTURES}")
     list(LENGTH apple_arch_list apple_arch_count)
     if(apple_arch_count GREATER 1)
       message(
         WARNING
-          "CMake-Conan: Multiple architectures detected, this will only work if Conan recipe(s) produce fat binaries."
-      )
+          "CMake-Conan: Multiple architectures detected, this will only work if Conan recipe(s) produce fat binaries.")
     endif()
   endif()
 
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin|iOS|tvOS|watchOS" AND NOT CMAKE_OSX_ARCHITECTURES STREQUAL
-                                                             "")
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin|iOS|tvOS|watchOS"
+     AND NOT
+         CMAKE_OSX_ARCHITECTURES
+         STREQUAL
+         "")
     set(host_arch ${CMAKE_OSX_ARCHITECTURES})
   elseif(MSVC)
     set(host_arch ${CMAKE_CXX_COMPILER_ARCHITECTURE_ID})
@@ -221,7 +241,12 @@ function(detect_lib_cxx LIB_CXX)
     set(${LIB_CXX}
         "libc++"
         PARENT_SCOPE)
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+  elseif(
+    CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+    AND NOT
+        CMAKE_SYSTEM_NAME
+        MATCHES
+        "Windows")
     # Check for libc++
     detect_libcxx()
     if(_CONAN_IS_LIBCXX)
@@ -250,7 +275,12 @@ function(detect_lib_cxx LIB_CXX)
   endif()
 endfunction()
 
-function(detect_compiler COMPILER COMPILER_VERSION COMPILER_RUNTIME COMPILER_RUNTIME_TYPE)
+function(
+  detect_compiler
+  COMPILER
+  COMPILER_VERSION
+  COMPILER_RUNTIME
+  COMPILER_RUNTIME_TYPE)
   if(DEFINED CMAKE_CXX_COMPILER_ID)
     set(_COMPILER ${CMAKE_CXX_COMPILER_ID})
     set(_COMPILER_VERSION ${CMAKE_CXX_COMPILER_VERSION})
@@ -267,7 +297,11 @@ function(detect_compiler COMPILER COMPILER_VERSION COMPILER_RUNTIME COMPILER_RUN
 
   if(_COMPILER MATCHES MSVC)
     set(_COMPILER "msvc")
-    string(SUBSTRING ${MSVC_VERSION} 0 3 _COMPILER_VERSION)
+    string(
+      SUBSTRING ${MSVC_VERSION}
+                0
+                3
+                _COMPILER_VERSION)
     # Configure compiler.runtime and compiler.runtime_type settings for MSVC
     if(CMAKE_MSVC_RUNTIME_LIBRARY)
       set(_msvc_runtime_library ${CMAKE_MSVC_RUNTIME_LIBRARY})
@@ -277,16 +311,28 @@ function(detect_compiler COMPILER COMPILER_VERSION COMPILER_RUNTIME COMPILER_RUN
     endif()
 
     set(_KNOWN_MSVC_RUNTIME_VALUES "")
-    list(APPEND _KNOWN_MSVC_RUNTIME_VALUES MultiThreaded MultiThreadedDLL)
-    list(APPEND _KNOWN_MSVC_RUNTIME_VALUES MultiThreadedDebug MultiThreadedDebugDLL)
-    list(APPEND _KNOWN_MSVC_RUNTIME_VALUES MultiThreaded$<$<CONFIG:Debug>:Debug>
-         MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)
+    list(
+      APPEND
+      _KNOWN_MSVC_RUNTIME_VALUES
+      MultiThreaded
+      MultiThreadedDLL)
+    list(
+      APPEND
+      _KNOWN_MSVC_RUNTIME_VALUES
+      MultiThreadedDebug
+      MultiThreadedDebugDLL)
+    list(
+      APPEND
+      _KNOWN_MSVC_RUNTIME_VALUES
+      MultiThreaded$<$<CONFIG:Debug>:Debug>
+      MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)
 
     # only accept the 6 possible values, otherwise we don't don't know to map this
-    if(NOT _msvc_runtime_library IN_LIST _KNOWN_MSVC_RUNTIME_VALUES)
-      message(
-        FATAL_ERROR
-          "CMake-Conan: unable to map MSVC runtime: ${_msvc_runtime_library} to Conan settings")
+    if(NOT
+       _msvc_runtime_library
+       IN_LIST
+       _KNOWN_MSVC_RUNTIME_VALUES)
+      message(FATAL_ERROR "CMake-Conan: unable to map MSVC runtime: ${_msvc_runtime_library} to Conan settings")
     endif()
 
     # Runtime is "dynamic" in all cases if it ends in DLL
@@ -299,7 +345,10 @@ function(detect_compiler COMPILER COMPILER_VERSION COMPILER_RUNTIME COMPILER_RUN
 
     # Only define compiler.runtime_type when explicitly requested If a generator expression is used,
     # let Conan handle it conditional on build_type
-    if(NOT _msvc_runtime_library MATCHES "<CONFIG:Debug>:Debug>")
+    if(NOT
+       _msvc_runtime_library
+       MATCHES
+       "<CONFIG:Debug>:Debug>")
       if(_msvc_runtime_library MATCHES "Debug")
         set(_COMPILER_RUNTIME_TYPE "Debug")
       else()
@@ -312,16 +361,40 @@ function(detect_compiler COMPILER COMPILER_VERSION COMPILER_RUNTIME COMPILER_RUN
 
   elseif(_COMPILER MATCHES AppleClang)
     set(_COMPILER "apple-clang")
-    string(REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-    list(GET VERSION_LIST 0 _COMPILER_VERSION)
+    string(
+      REPLACE "."
+              ";"
+              VERSION_LIST
+              ${CMAKE_CXX_COMPILER_VERSION})
+    list(
+      GET
+      VERSION_LIST
+      0
+      _COMPILER_VERSION)
   elseif(_COMPILER MATCHES Clang)
     set(_COMPILER "clang")
-    string(REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-    list(GET VERSION_LIST 0 _COMPILER_VERSION)
+    string(
+      REPLACE "."
+              ";"
+              VERSION_LIST
+              ${CMAKE_CXX_COMPILER_VERSION})
+    list(
+      GET
+      VERSION_LIST
+      0
+      _COMPILER_VERSION)
   elseif(_COMPILER MATCHES GNU)
     set(_COMPILER "gcc")
-    string(REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-    list(GET VERSION_LIST 0 _COMPILER_VERSION)
+    string(
+      REPLACE "."
+              ";"
+              VERSION_LIST
+              ${CMAKE_CXX_COMPILER_VERSION})
+    list(
+      GET
+      VERSION_LIST
+      0
+      _COMPILER_VERSION)
   endif()
 
   message(STATUS "CMake-Conan: [settings] compiler=${_COMPILER}")
@@ -358,14 +431,26 @@ function(detect_build_type BUILD_TYPE)
   endif()
 endfunction()
 
-macro(set_conan_compiler_if_appleclang lang command output_variable)
+macro(
+  set_conan_compiler_if_appleclang
+  lang
+  command
+  output_variable)
   if(CMAKE_${lang}_COMPILER_ID STREQUAL "AppleClang")
     execute_process(
       COMMAND xcrun --find ${command}
       OUTPUT_VARIABLE _xcrun_out
       OUTPUT_STRIP_TRAILING_WHITESPACE)
-    cmake_path(GET _xcrun_out PARENT_PATH _xcrun_toolchain_path)
-    cmake_path(GET CMAKE_${lang}_COMPILER PARENT_PATH _compiler_parent_path)
+    cmake_path(
+      GET
+      _xcrun_out
+      PARENT_PATH
+      _xcrun_toolchain_path)
+    cmake_path(
+      GET
+      CMAKE_${lang}_COMPILER
+      PARENT_PATH
+      _compiler_parent_path)
     if("${_xcrun_toolchain_path}" STREQUAL "${_compiler_parent_path}")
       set(${output_variable} "")
     endif()
@@ -393,18 +478,29 @@ macro(append_compiler_executables_configuration)
                     "Please define CMAKE_CXX_COMPILER or enable the C++ language.")
   endif()
 
-  if(NOT "x${_conan_c_compiler}${_conan_cpp_compiler}" STREQUAL "x")
-    string(APPEND PROFILE
-           "tools.build:compiler_executables={${_conan_c_compiler}${_conan_cpp_compiler}}\n")
+  if(NOT
+     "x${_conan_c_compiler}${_conan_cpp_compiler}"
+     STREQUAL
+     "x")
+    string(APPEND PROFILE "tools.build:compiler_executables={${_conan_c_compiler}${_conan_cpp_compiler}}\n")
   endif()
   unset(_conan_c_compiler)
   unset(_conan_cpp_compiler)
 endmacro()
 
 function(detect_host_profile output_file)
-  detect_os(MYOS MYOS_API_LEVEL MYOS_SDK MYOS_SUBSYSTEM MYOS_VERSION)
+  detect_os(
+    MYOS
+    MYOS_API_LEVEL
+    MYOS_SDK
+    MYOS_SUBSYSTEM
+    MYOS_VERSION)
   detect_arch(MYARCH)
-  detect_compiler(MYCOMPILER MYCOMPILER_VERSION MYCOMPILER_RUNTIME MYCOMPILER_RUNTIME_TYPE)
+  detect_compiler(
+    MYCOMPILER
+    MYCOMPILER_VERSION
+    MYCOMPILER_RUNTIME
+    MYCOMPILER_RUNTIME_TYPE)
   detect_cxx_standard(MYCXX_STANDARD)
   detect_lib_cxx(MYLIB_CXX)
   detect_build_type(MYBUILD_TYPE)
@@ -412,40 +508,88 @@ function(detect_host_profile output_file)
   set(PROFILE "")
   string(APPEND PROFILE "[settings]\n")
   if(MYARCH)
-    string(APPEND PROFILE arch=${MYARCH} "\n")
+    string(
+      APPEND
+      PROFILE
+      arch=${MYARCH}
+      "\n")
   endif()
   if(MYOS)
-    string(APPEND PROFILE os=${MYOS} "\n")
+    string(
+      APPEND
+      PROFILE
+      os=${MYOS}
+      "\n")
   endif()
   if(MYOS_API_LEVEL)
-    string(APPEND PROFILE os.api_level=${MYOS_API_LEVEL} "\n")
+    string(
+      APPEND
+      PROFILE
+      os.api_level=${MYOS_API_LEVEL}
+      "\n")
   endif()
   if(MYOS_VERSION)
-    string(APPEND PROFILE os.version=${MYOS_VERSION} "\n")
+    string(
+      APPEND
+      PROFILE
+      os.version=${MYOS_VERSION}
+      "\n")
   endif()
   if(MYOS_SDK)
-    string(APPEND PROFILE os.sdk=${MYOS_SDK} "\n")
+    string(
+      APPEND
+      PROFILE
+      os.sdk=${MYOS_SDK}
+      "\n")
   endif()
   if(MYOS_SUBSYSTEM)
-    string(APPEND PROFILE os.subsystem=${MYOS_SUBSYSTEM} "\n")
+    string(
+      APPEND
+      PROFILE
+      os.subsystem=${MYOS_SUBSYSTEM}
+      "\n")
   endif()
   if(MYCOMPILER)
-    string(APPEND PROFILE compiler=${MYCOMPILER} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler=${MYCOMPILER}
+      "\n")
   endif()
   if(MYCOMPILER_VERSION)
-    string(APPEND PROFILE compiler.version=${MYCOMPILER_VERSION} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler.version=${MYCOMPILER_VERSION}
+      "\n")
   endif()
   if(MYCOMPILER_RUNTIME)
-    string(APPEND PROFILE compiler.runtime=${MYCOMPILER_RUNTIME} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler.runtime=${MYCOMPILER_RUNTIME}
+      "\n")
   endif()
   if(MYCOMPILER_RUNTIME_TYPE)
-    string(APPEND PROFILE compiler.runtime_type=${MYCOMPILER_RUNTIME_TYPE} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler.runtime_type=${MYCOMPILER_RUNTIME_TYPE}
+      "\n")
   endif()
   if(MYCXX_STANDARD)
-    string(APPEND PROFILE compiler.cppstd=${MYCXX_STANDARD} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler.cppstd=${MYCXX_STANDARD}
+      "\n")
   endif()
   if(MYLIB_CXX)
-    string(APPEND PROFILE compiler.libcxx=${MYLIB_CXX} "\n")
+    string(
+      APPEND
+      PROFILE
+      compiler.libcxx=${MYLIB_CXX}
+      "\n")
   endif()
   if(MYBUILD_TYPE)
     string(APPEND PROFILE "build_type=${MYBUILD_TYPE}\n")
@@ -481,7 +625,10 @@ function(conan_profile_detect_default)
     ERROR_VARIABLE conan_stderr ECHO_ERROR_VARIABLE # show the text output regardless
                    ECHO_OUTPUT_VARIABLE
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  if(NOT ${return_code} EQUAL "0")
+  if(NOT
+     ${return_code}
+     EQUAL
+     "0")
     message(STATUS "CMake-Conan: The default profile doesn't exist, detecting it.")
     execute_process(
       COMMAND ${CONAN_COMMAND} profile detect
@@ -518,7 +665,10 @@ function(conan_install)
     set(ENV{PATH} "${_OLD_PATH}")
   endif()
 
-  if(NOT "${return_code}" STREQUAL "0")
+  if(NOT
+     "${return_code}"
+     STREQUAL
+     "0")
     message(FATAL_ERROR "Conan install failed='${return_code}'")
   endif()
 
@@ -534,7 +684,11 @@ function(conan_install)
     nodes
     0
     generators_folder)
-  cmake_path(CONVERT ${CONAN_GENERATORS_FOLDER} TO_CMAKE_PATH_LIST CONAN_GENERATORS_FOLDER)
+  cmake_path(
+    CONVERT
+    ${CONAN_GENERATORS_FOLDER}
+    TO_CMAKE_PATH_LIST
+    CONAN_GENERATORS_FOLDER)
   # message("conan stdout: ${conan_stdout}")
   message(STATUS "CMake-Conan: CONAN_GENERATORS_FOLDER=${CONAN_GENERATORS_FOLDER}")
   set_property(GLOBAL PROPERTY CONAN_GENERATORS_FOLDER "${CONAN_GENERATORS_FOLDER}")
@@ -568,7 +722,11 @@ function(conan_get_version conan_command conan_current_version)
     message(FATAL_ERROR "CMake-Conan: Error when trying to run Conan")
   endif()
 
-  string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" conan_version ${conan_output})
+  string(
+    REGEX MATCH
+          "[0-9]+\\.[0-9]+\\.[0-9]+"
+          conan_version
+          ${conan_output})
   set(${conan_current_version}
       ${conan_version}
       PARENT_SCOPE)
@@ -578,8 +736,12 @@ function(conan_version_check)
   set(options)
   set(oneValueArgs MINIMUM CURRENT)
   set(multiValueArgs)
-  cmake_parse_arguments(CONAN_VERSION_CHECK "${options}" "${oneValueArgs}" "${multiValueArgs}"
-                        ${ARGN})
+  cmake_parse_arguments(
+    CONAN_VERSION_CHECK
+    "${options}"
+    "${oneValueArgs}"
+    "${multiValueArgs}"
+    ${ARGN})
 
   if(NOT CONAN_VERSION_CHECK_MINIMUM)
     message(FATAL_ERROR "CMake-Conan: Required parameter MINIMUM not set!")
@@ -589,8 +751,7 @@ function(conan_version_check)
   endif()
 
   if(CONAN_VERSION_CHECK_CURRENT VERSION_LESS CONAN_VERSION_CHECK_MINIMUM)
-    message(
-      FATAL_ERROR "CMake-Conan: Conan version must be ${CONAN_VERSION_CHECK_MINIMUM} or later")
+    message(FATAL_ERROR "CMake-Conan: Conan version must be ${CONAN_VERSION_CHECK_MINIMUM} or later")
   endif()
 endfunction()
 
@@ -617,7 +778,11 @@ macro(conan_provide_dependency method package_name)
   if(NOT _conan_install_success)
     find_program(CONAN_COMMAND "conan" REQUIRED)
     conan_get_version(${CONAN_COMMAND} CONAN_CURRENT_VERSION)
-    conan_version_check(MINIMUM ${CONAN_MINIMUM_VERSION} CURRENT ${CONAN_CURRENT_VERSION})
+    conan_version_check(
+      MINIMUM
+      ${CONAN_MINIMUM_VERSION}
+      CURRENT
+      ${CONAN_CURRENT_VERSION})
     message(STATUS "CMake-Conan: first find_package() found. Installing dependencies with Conan")
     if("default" IN_LIST CONAN_HOST_PROFILE OR "default" IN_LIST CONAN_BUILD_PROFILE)
       conan_profile_detect_default()
@@ -629,13 +794,19 @@ macro(conan_provide_dependency method package_name)
     construct_profile_argument(_build_profile_flags CONAN_BUILD_PROFILE)
     if(EXISTS "${CMAKE_SOURCE_DIR}/conanfile.py")
       file(READ "${CMAKE_SOURCE_DIR}/conanfile.py" outfile)
-      if(NOT "${outfile}" MATCHES ".*CMakeDeps.*")
+      if(NOT
+         "${outfile}"
+         MATCHES
+         ".*CMakeDeps.*")
         message(WARNING "Cmake-conan: CMakeDeps generator was not defined in the conanfile")
       endif()
       set(generator "")
     elseif(EXISTS "${CMAKE_SOURCE_DIR}/conanfile.txt")
       file(READ "${CMAKE_SOURCE_DIR}/conanfile.txt" outfile)
-      if(NOT "${outfile}" MATCHES ".*CMakeDeps.*")
+      if(NOT
+         "${outfile}"
+         MATCHES
+         ".*CMakeDeps.*")
         message(WARNING "Cmake-conan: CMakeDeps generator was not defined in the conanfile. "
                         "Please define the generator as it will be mandatory in the future")
       endif()
@@ -644,14 +815,27 @@ macro(conan_provide_dependency method package_name)
     get_property(_multiconfig_generator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     if(NOT _multiconfig_generator)
       message(STATUS "CMake-Conan: Installing single configuration ${CMAKE_BUILD_TYPE}")
-      conan_install(${_host_profile_flags} ${_build_profile_flags} ${CONAN_INSTALL_ARGS}
-                    ${generator})
+      conan_install(
+        ${_host_profile_flags}
+        ${_build_profile_flags}
+        ${CONAN_INSTALL_ARGS}
+        ${generator})
     else()
       message(STATUS "CMake-Conan: Installing both Debug and Release")
-      conan_install(${_host_profile_flags} ${_build_profile_flags} -s build_type=Release
-                    ${CONAN_INSTALL_ARGS} ${generator})
-      conan_install(${_host_profile_flags} ${_build_profile_flags} -s build_type=Debug
-                    ${CONAN_INSTALL_ARGS} ${generator})
+      conan_install(
+        ${_host_profile_flags}
+        ${_build_profile_flags}
+        -s
+        build_type=Release
+        ${CONAN_INSTALL_ARGS}
+        ${generator})
+      conan_install(
+        ${_host_profile_flags}
+        ${_build_profile_flags}
+        -s
+        build_type=Debug
+        ${CONAN_INSTALL_ARGS}
+        ${generator})
     endif()
     unset(_host_profile_flags)
     unset(_build_profile_flags)
@@ -672,7 +856,10 @@ macro(conan_provide_dependency method package_name)
   # Filter out `REQUIRED` from the argument list, as the first call may fail
   set(_find_args_${package_name} "${ARGN}")
   list(REMOVE_ITEM _find_args_${package_name} "REQUIRED")
-  if(NOT "MODULE" IN_LIST _find_args_${package_name})
+  if(NOT
+     "MODULE"
+     IN_LIST
+     _find_args_${package_name})
     find_package(
       ${package_name}
       ${_find_args_${package_name}}
@@ -688,7 +875,11 @@ macro(conan_provide_dependency method package_name)
   # result. If not, fall back to CMake default search behaviour, also allowing modules to be
   # searched.
   if(NOT ${package_name}_FOUND)
-    list(FIND CMAKE_MODULE_PATH "${_conan_generators_folder}" _index)
+    list(
+      FIND
+      CMAKE_MODULE_PATH
+      "${_conan_generators_folder}"
+      _index)
     if(_index EQUAL -1)
       list(PREPEND CMAKE_MODULE_PATH "${_conan_generators_folder}")
     endif()
@@ -698,15 +889,18 @@ macro(conan_provide_dependency method package_name)
   endif()
 endmacro()
 
-cmake_language(SET_DEPENDENCY_PROVIDER conan_provide_dependency SUPPORTED_METHODS FIND_PACKAGE)
+cmake_language(
+  SET_DEPENDENCY_PROVIDER
+  conan_provide_dependency
+  SUPPORTED_METHODS
+  FIND_PACKAGE)
 
 macro(conan_provide_dependency_check)
   set(_CONAN_PROVIDE_DEPENDENCY_INVOKED FALSE)
   get_property(_CONAN_PROVIDE_DEPENDENCY_INVOKED GLOBAL PROPERTY CONAN_PROVIDE_DEPENDENCY_INVOKED)
   if(NOT _CONAN_PROVIDE_DEPENDENCY_INVOKED)
     message(WARNING "Conan is correctly configured as dependency provider, "
-                    "but Conan has not been invoked. Please add at least one "
-                    "call to `find_package()`.")
+                    "but Conan has not been invoked. Please add at least one " "call to `find_package()`.")
     if(DEFINED CONAN_COMMAND)
       # supress warning in case `CONAN_COMMAND` was specified but unused.
       set(_CONAN_COMMAND ${CONAN_COMMAND})
@@ -718,7 +912,12 @@ endmacro()
 
 # Add a deferred call at the end of processing the top-level directory to check if the dependency
 # provider was invoked at all.
-cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL conan_provide_dependency_check)
+cmake_language(
+  DEFER
+  DIRECTORY
+  "${CMAKE_SOURCE_DIR}"
+  CALL
+  conan_provide_dependency_check)
 
 # Configurable variables for Conan profiles
 set(CONAN_HOST_PROFILE
@@ -734,7 +933,10 @@ set(CONAN_INSTALL_ARGS
 find_program(
   _cmake_program
   NAMES cmake NO_PACKAGE_ROOT_PATH
-  NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH NO_CMAKE_FIND_ROOT_PATH)
+  NO_CMAKE_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH
+  NO_CMAKE_FIND_ROOT_PATH)
 if(NOT _cmake_program)
   get_filename_component(PATH_TO_CMAKE_BIN "${CMAKE_COMMAND}" DIRECTORY)
   set(PATH_TO_CMAKE_BIN
