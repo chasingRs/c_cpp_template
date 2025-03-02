@@ -19,13 +19,11 @@ class ConfigModifier {
     // await this.modWindowsRegistry()
   }
   modConfig = async function () {
+    await this.modConan()
     await this.windowsMod()
   }
-  private unixMod = async function () {
-    await this.modConan()
-  }
   private windowsMod = async function () {
-    await this.modPowerShell()
+    // await this.modPowerShell()
   }
   // For linux to use System package manager to install packages
   private modConan = async function () {
@@ -37,7 +35,8 @@ class ConfigModifier {
       return
     } else {
       fs.appendFileSync(`${conanHome}/global.conf`, `
-tools.build:skip_test = True`)
+tools.build:skip_test = True
+tools.microsoft.msbuild:installation_path=${MSVCInstallDir}/buildTools`)
     }
     console.log("=========conan global config=========")
     console.log(chalk.gray(fs.readFileSync(`${conanHome}/global.conf`, 'utf8')))
