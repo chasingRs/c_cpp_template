@@ -14,6 +14,4 @@ target_link_system_libraries(
   dbg-macro::dbg-macro
   CLI11::CLI11)
 
-# set_target_properties(json_parser PROPERTIES LINK_FLAGS "-Wl,-rpath,../lib")
-
 target_include_directories(json_parser PRIVATE "${CMAKE_BINARY_DIR}/configured_files/include")
