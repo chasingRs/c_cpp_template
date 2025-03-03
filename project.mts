@@ -188,7 +188,8 @@ class Excutor {
       );
       const cmakeConfigreCommand = `"cmake -S . --preset=${this.projectConfigs.configureConfig.preset}"`
       await $`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
-      await $`New-Item -ItemType SymbolicLink -Path ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json -Target ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json`.pipe(process.stderr)
+      const newItemCommand = `"New-Item -ItemType SymbolicLink -Path ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json -Target ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json"`
+      await $`powershell -Command ${newItemCommand}`.pipe(process.stderr)
     } else {
       await $`cmake -S . --preset=${this.projectConfigs.configureConfig.preset}`.pipe(process.stderr)
       await $`ln -sfr ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json `.pipe(process.stderr)

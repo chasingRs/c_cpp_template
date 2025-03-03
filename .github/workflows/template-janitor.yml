@@ -16,7 +16,6 @@ env:
 
 jobs:
   template-cleanup:
-    if: github.event.repository.is_template == false
     name: Cleanup after create
     runs-on: ubuntu-24.04
     strategy:
