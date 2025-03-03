@@ -13,6 +13,7 @@
 #include <map>
 #include <queue>
 #include <string>
+
 struct Person {
     std::string name;
     int age;
@@ -32,9 +33,7 @@ int main( [[maybe_unused]] int argc, [[maybe_unused]] char* argv[] ) {
     bool show_version = false;
     try {
         app.add_flag( "-v,--version", show_version, "show version" );
-
         CLI11_PARSE( app, argc, argv );
-
         if ( show_version ) {
             std::cout << fmt::format( "{} version {}", app.get_display_name( true ), app.version() ) << "\n";
             return EXIT_SUCCESS;

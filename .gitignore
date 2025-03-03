@@ -11,7 +11,7 @@ node_modules/
 CMakeUserPresets.json
 
 # Project settings
-setup_cache.json
+.project.json
 
 # IDE files
 .vs/

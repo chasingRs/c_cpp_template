@@ -6,7 +6,7 @@ import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
 import { usePowerShell } from 'zx';
 import { findCmdsInEnv, refreshEnv } from './scripts/envHelper.mts'
 
-const configPath = 'setup_cache.json'
+const configPath = '.project.json'
 const presetsFile = 'CMakePresets.json'
 let script_postfix = ''
 
@@ -15,10 +15,7 @@ if (process.platform === 'win32') {
   script_postfix = 'bat'
 }
 
-// default is "set -euo pipefail;",
-// `-u`: Treat unset variables as an error and exit immediately.
 if (process.platform === 'linux') {
-  $.prefix = "set -eo pipefail;"
   script_postfix = 'sh'
 }
 
@@ -27,7 +24,7 @@ function parseJson(json: PathOrFileDescriptor) {
     let content = fs.readFileSync(json, 'utf8')
     return JSON.parse(content)
   } catch (e) {
-    console.error('error:', e)
+    console.error(chalk.redBright('error:', e))
     throws(e)
   }
 }
@@ -215,16 +212,19 @@ class Excutor {
   }
 
   runTarget = async function () {
+    this.projectConfigs.buildConfig.target = this.projectConfigs.launchConfig.target
+    await this.cmakeBuild()
     this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
       const runTargetCommand = `"${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}"`
-      await $`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
+      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
     } else {
-      await $`${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}`.pipe(process.stderr)
+      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}`.pipe(process.stderr)
     }
   }
 
   runTestAndCov = async function () {
+    await this.cmakeBuild()
     this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
       const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.projectConfigs.configureConfig.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.projectConfigs.testConfig.ctestArgs}"`
@@ -236,6 +236,7 @@ class Excutor {
   }
 
   install = async function () {
+    await this.cmakeBuild()
     if (process.platform === 'win32') {
       const cpackCommand = `"cmake --install ${this.projectConfigs.configureConfig.binaryDir}"`
       await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
@@ -245,6 +246,7 @@ class Excutor {
   }
 
   cpack = async function () {
+    await this.cmakeBuild()
     if (process.platform === 'win32') {
       const cpackCommand = `"cd ${this.projectConfigs.configureConfig.binaryDir};cpack"`
       await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
@@ -254,53 +256,64 @@ class Excutor {
   }
 }
 
-// This script is used to run target flexible
-// usage: project.mjs <action> [target] [-- args]
-// for example: 
-
-// Get help
-// tsx project.mts                          --------show help
-// tsx project.mts -h                       --------show help
-// tsx project.mts --help                   --------show help
-
-// Setup the project(select a cmake preset, parse and store it)
-// tsx project.mts setup  some_preset       --------setup the project with specified preset
-
-// Clean the project
-// tsx project.mts clean                    --------clean project
-
-// Cmake configure
-// tsx project.mts config                   --------run cmake configure
-
-// Build the project
-// tsx project.mts build                    --------build all targets
-// tsx project.mts build some_target        --------build the target 'some_target'
-
-// Run the target
-// tsx project.mts run some_target          --------run the target 'some_target'
-// tsx project.mts run some_target -- args  --------run the target 'some_target' with args
-
-// Test the project
-// tsx project.mts test                     --------run all tests
-// tsx project.mts test some_test           --------run the test 'some_test'
-
-// Pack the project
-// tsx project.mts pack                     --------pack the project
-
-
 function showHelp() {
-  console.log(chalk.greenBright('Usage: tsx project.mts <action> [target] [args]'))
-  console.log(chalk.greenBright('action: clean | build | run | test | config'))
-  console.log(chalk.greenBright('target: the target to run'))
-  console.log(chalk.greenBright('args: the arguments to pass to the target'))
+  console.log(chalk.green(' This script is used to run target flexible'))
+  console.log(chalk.green(' usage: project.mjs <action> [target] [-- args]'))
+  console.log(chalk.green(' for example: '))
+  console.log("\n")
+  console.log(chalk.green(' Get help'))
+  console.log(chalk.green(' tsx project.mts                                     ---show help'))
+  console.log(chalk.green(' tsx project.mts -h                                  ---show help'))
+  console.log(chalk.green(' tsx project.mts --help                              ---show help'))
+  console.log("\n")
+  console.log(chalk.green(' Setup the project(select a cmake preset, parse and store it)'))
+  console.log(chalk.green(' tsx project.mts setup  some_preset                  ---setup the project with specified preset'))
+  console.log("\n")
+  console.log(chalk.green(' Clean the project'))
+  console.log(chalk.green(' tsx project.mts clean                               ---clean project'))
+  console.log("\n")
+  console.log(chalk.green(' Cmake configure'))
+  console.log(chalk.green(' tsx project.mts config                              ---run cmake configure'))
+  console.log("\n")
+  console.log(chalk.green(' Build the project'))
+  console.log(chalk.green(' tsx project.mts build                               ---build all targets'))
+  console.log(chalk.green(' tsx project.mts build [target_name]                 ---build the target [target_name]'))
+  console.log("\n")
+  console.log(chalk.green(' Run the target'))
+  console.log(chalk.green(' tsx project.mts run [target_name]                   ---run the target [target]'))
+  console.log(chalk.green(' tsx project.mts run [target_name] [-- target_args]  ---run the target [target_name] with target_args'))
+  console.log("\n")
+  console.log(chalk.green(' Test the project'))
+  console.log(chalk.green(' tsx project.mts test                                ---run all tests'))
+  console.log(chalk.green(' tsx project.mts test [test_name]                    ---run the test [test_name]'))
+  console.log("\n")
+  console.log(chalk.green(' Pack the project'))
+  console.log(chalk.green(' tsx project.mts pack                                ---pack the project'))
+  console.log("\n")
+  console.log(chalk.hex('0xa9cc00')('Usage: tsx project.mts <action> [target] [-- args]'))
+  console.log(chalk.hex('0xa9cc00')('action: config | clean | build | run | test | install | pack'))
+  console.log(chalk.hex('0xa9cc00')('target: the target to execute the action'))
+  console.log(chalk.hex('0xa9cc00')('args: the arguments to pass to the target'))
 }
 
 
 async function main() {
+  if (argv._.length == 0 || argv.h || argv.help) {
+    showHelp()
+    process.exit(0)
+  }
+  const myArgv = minimist(process.argv.slice(2), {
+    ['--']: true
+  })
+  console.log(chalk.blue("Script args: ", myArgv._.join(' ')))
+  if (myArgv['--'] !== undefined) {
+    console.log(chalk.blue("Target args: ", myArgv['--'].join(' ')))
+  }
+
   // To avoid user not reload the ternimal after install tools,refresh the env
-  let cmdNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ctest']) // 'ccache'
-  if (cmdNotFound.length > 0) {
-    console.log(chalk.redBright(`Some commands not found in path:${cmdNotFound} ,Tring reload the environment...`))
+  let cmdsNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ctest']) // 'ccache'
+  if (cmdsNotFound.length > 0) {
+    console.log(chalk.redBright(`Some commands not found in path:${cmdsNotFound} ,Tring reload the environment...`))
     if (process.platform === 'win32') {
       refreshEnv('refreshenv')
     }
@@ -308,15 +321,6 @@ async function main() {
       refreshEnv('source ~/.profile')
     }
   }
-
-  console.log(argv)
-  if (argv._.length == 0 || argv.h || argv.help) {
-    showHelp()
-  }
-
-  const myArgv = minimist(process.argv.slice(2), {
-    ['--']: true
-  })
 
   let changeConfig = {
     buildConfig: {
@@ -332,9 +336,9 @@ async function main() {
   }
 
   if (myArgv._[0] == 'setup') {
-    console.log('Running setup...')
+    console.log(chalk.greenBright('Running setup...'))
     if (myArgv._.length < 2) {
-      console.error('Please specify a preset to setup')
+      console.error(chalk.redBright('Please specify a preset to setup'))
       process.exit(1)
     }
     const setup = {
@@ -350,44 +354,43 @@ async function main() {
 
   switch (myArgv._[0]) {
     case 'clean':
-      console.log('Cleaning project...')
+      console.log(chalk.greenBright('Cleaning project...'))
       await excutor.clean()
       break
     case 'config':
-      console.log('Configuring project...')
+      console.log(chalk.greenBright('Configuring project...'))
       await excutor.clean()
       await excutor.cmakeConfigure()
       break
     case 'build':
-      console.log('Building project...')
+      console.log(chalk.greenBright('Building project...'))
       if (myArgv._.length > 1) {
-        console.log('building target:', myArgv._[1])
+        console.log(chalk.greenBright('Building target:', myArgv._[1]))
         changeConfig.buildConfig.target = myArgv._[1]
       } else {
-        console.log("Building all targets")
+        console.log(chalk.greenBright("Building all targets"))
         changeConfig.buildConfig.target = 'all'
       }
       config.changeConfig(changeConfig)
       await excutor.cmakeBuild()
       break
     case 'run':
-      console.log('Running target...')
       if (myArgv._.length > 1) {
-        console.log('runing target:', myArgv._[1])
+        console.log(chalk.greenBright('Runing target:', myArgv._[1]))
         changeConfig.launchConfig.target = myArgv._[1]
         if (myArgv['--']) {
-          console.log('args:', myArgv['--'].join(' '))
+          console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
           changeConfig.launchConfig.args = myArgv['--'].join(' ')
         }
       } else {
-        console.error("Please specify a target to run")
+        console.error(chalk.redBright("Please specify a target to run"))
         return
       }
       config.changeConfig(changeConfig)
       await excutor.runTarget()
       break
     case 'test':
-      console.log('Testing project...')
+      console.log(chalk.greenBright('Testing project...'))
       if (myArgv['--']) {
         console.log('args:', myArgv['--'].join(' '))
         changeConfig.testConfig.ctestArgs = myArgv['--'].join(' ')
@@ -396,11 +399,11 @@ async function main() {
       }
       break
     case 'install':
-      console.log('Packing project...')
+      console.log(chalk.greenBright('Installing project...'))
       await excutor.install()
       break
     case 'pack':
-      console.log('Packing project...')
+      console.log(chalk.greenBright('Packing project...'))
       await excutor.cpack()
       break
     default:
@@ -408,4 +411,5 @@ async function main() {
       break
   }
 }
+
 main()
