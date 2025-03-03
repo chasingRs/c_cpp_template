@@ -35,6 +35,8 @@ jobs:
         language: ["cpp"]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://git.io/codeql-language-support
+        compiler:
+          - gcc-13
         cmake_preset:
           - "unixlike-gcc-debug"
 
