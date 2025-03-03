@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - dev
+permissions:
+  contents: write
 # env:
 defaults:
   run:
