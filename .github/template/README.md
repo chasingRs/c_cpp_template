@@ -1,11 +1,11 @@
-# %%myproject%%
+# %%c_cpp_template%%
 
-[![windows-build](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/windows-build.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/windows-build.yml)
-[![linux-build](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/linux-build.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/linux-build.yml)
-[![codecov](https://codecov.io/gh/%%myorg%%/%%myproject%%/branch/main/graph/badge.svg)](https://codecov.io/gh/%%myorg%%/%%myproject%%)
-[![CodeQL](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/%%myorg%%/%%myproject%%/actions/workflows/codeql-analysis.yml)
+[![windows-build](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/windows-build.yml/badge.svg)](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/windows-build.yml)
+[![linux-build](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/linux-build.yml/badge.svg)](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/linux-build.yml)
+[![codecov](https://codecov.io/gh/%%org_name%%/%%c_cpp_template%%/branch/main/graph/badge.svg)](https://codecov.io/gh/%%org_name%%/%%c_cpp_template%%)
+[![CodeQL](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/%%org_name%%/%%c_cpp_template%%/actions/workflows/codeql-analysis.yml)
 
-## About %%myproject%%
+## About %%c_cpp_template%%
 %%description%%
 
 

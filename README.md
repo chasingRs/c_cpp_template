@@ -63,6 +63,7 @@ Now you can clone the project locally and get to work!
 1. Firstly,install Prerequisities:
 
 For windows:
+
 `choco`
 `node,npm`
 `tsx`: `npm i -g tsx`
@@ -80,7 +81,9 @@ cd ./scripts
 ./setup.bat
 ```
 --------------------
+
 For linux:
+
 `node,npm`
 `tsx`: `npm i -g tsx`
 `gcc,g++`
