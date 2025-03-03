@@ -22,8 +22,6 @@ if (process.platform === 'linux') {
   script_postfix = 'sh'
 }
 
-
-
 function parseJson(json: PathOrFileDescriptor) {
   try {
     let content = fs.readFileSync(json, 'utf8')
@@ -332,9 +330,6 @@ async function main() {
       ctestArgs: ''
     }
   }
-
-  // await excutor.cmakeGenerate()
-  // await excutor.cmakeBuild()
 
   if (myArgv._[0] == 'setup') {
     console.log('Running setup...')
