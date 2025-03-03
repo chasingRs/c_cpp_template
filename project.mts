@@ -188,7 +188,7 @@ class Excutor {
       );
       const cmakeConfigreCommand = `"cmake -S . --preset=${this.projectConfigs.configureConfig.preset}"`
       await $`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
-      await $`Copy-Item -Path ${this.projectConfigs.configureConfig.binaryDir}\\compile_commands.json -Destination ${this.projectConfigs.configureConfig.sourceDir}`.pipe(process.stderr)
+      await $`Copy-Item -Path ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json -Destination ${this.projectConfigs.configureConfig.sourceDir}`.pipe(process.stderr)
     } else {
       await $`cmake -S . --preset=${this.projectConfigs.configureConfig.preset}`.pipe(process.stderr)
       await $`ln -sfr ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json `.pipe(process.stderr)
