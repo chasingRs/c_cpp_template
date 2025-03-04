@@ -1,10 +1,16 @@
-#include <c_cpp_template/sample_library.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include <gtest/gtest.h>
 
-TEST_CASE( "Factorials are computed", "[factorial]" ) {
-    REQUIRE( factorial( 0 ) == 1 );
-    REQUIRE( factorial( 1 ) == 1 );
-    REQUIRE( factorial( 2 ) == 2 );
-    REQUIRE( factorial( 3 ) == 6 );
-    REQUIRE( factorial( 10 ) == 3628800 );
+#include <c_cpp_template/sample_library.hpp>
+
+TEST( HelloTest, BasicAssertions ) {
+    EXPECT_STRNE( "hello", "world" );
+}
+
+TEST( SampleLibraryTest, FactorialTest ) {
+    EXPECT_EQ( 1, factorial( 0 ) );
+    EXPECT_EQ( 1, factorial( 1 ) );
+    EXPECT_EQ( 2, factorial( 2 ) );
+    EXPECT_EQ( 6, factorial( 3 ) );
+    EXPECT_EQ( 24, factorial( 4 ) );
+    EXPECT_EQ( 120, factorial( 5 ) );
 }

@@ -1,4 +1,4 @@
-macro(c_cpp_template_configure_linker project_name)
+macro(c_cpp_template_configure_linker project)
   include(CheckCXXCompilerFlag)
 
   set(USER_LINKER_OPTION
@@ -30,6 +30,6 @@ macro(c_cpp_template_configure_linker project_name)
 
   check_cxx_compiler_flag(${LINKER_FLAG} CXX_SUPPORTS_USER_LINKER)
   if(CXX_SUPPORTS_USER_LINKER)
-    target_compile_options(${PROJECT_NAME} INTERFACE ${LINKER_FLAG})
+    target_compile_options(${project} INTERFACE ${LINKER_FLAG})
   endif()
 endmacro()

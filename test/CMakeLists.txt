@@ -16,93 +16,33 @@ if(PROJECT_IS_TOP_LEVEL OR TEST_INSTALLED_VERSION)
 endif()
 
 # ---- Dependencies ----
-# Include Catch.cmake file
-find_package(Catch2 REQUIRED)
-include("${Catch2_INCLUDE_DIRS}/../lib/cmake/Catch2/Catch.cmake")
-# Print the installation directory
+find_package(GTest REQUIRED)
+include(GoogleTest)
 
 # Provide a simple smoke test to make sure that the CLI works and can display a --help message
-add_test(NAME cli.has_help COMMAND json_parser --help)
+add_test(NAME cli.has_help COMMAND intro --help)
+add_test(NAME cli.show_help_without_args COMMAND intro)
 
 # Provide a test to verify that the version being reported from the application matches the version
 # given to CMake. This will be important once you package your program. Real world shows that this
 # is the kind of simple mistake that is easy to make, but also easy to test for.
-add_test(NAME cli.version_matches COMMAND json_parser --version)
+add_test(NAME cli.version_matches COMMAND intro --version)
 set_tests_properties(cli.version_matches PROPERTIES PASS_REGULAR_EXPRESSION "${PROJECT_VERSION}")
 
 add_executable(tests tests.cpp)
 target_link_libraries(
   tests
-  PRIVATE c_cpp_template::c_cpp_template_warnings
-          c_cpp_template::c_cpp_template_options
-          c_cpp_template::sample_library
-          Catch2::Catch2WithMain)
+  PRIVATE c_cpp_template::c_cpp_template_options
+          c_cpp_template::c_cpp_template_warnings
+          gtest::gtest
+          c_cpp_template::sample_library)
+gtest_discover_tests(tests)
 
-if(WIN32 AND BUILD_SHARED_LIBS)
-  add_custom_command(
-    TARGET tests
-    PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests>
-    COMMAND_EXPAND_LISTS)
-endif()
-
-# automatically discover tests that are defined in catch based test files you can modify the
-# unittests. Set TEST_PREFIX to whatever you want, or use different for different binaries
-catch_discover_tests(
-  tests
-  TEST_PREFIX
-  "unittests."
-  REPORTER
-  XML
-  OUTPUT_DIR
-  .
-  OUTPUT_PREFIX
-  "unittests."
-  OUTPUT_SUFFIX
-  .xml)
-
-# Add a file containing a set of constexpr tests
 add_executable(constexpr_tests constexpr_tests.cpp)
 target_link_libraries(
   constexpr_tests
-  PRIVATE c_cpp_template::c_cpp_template_warnings
-          c_cpp_template::c_cpp_template_options
-          c_cpp_template::sample_library
-          Catch2::Catch2WithMain)
-
-catch_discover_tests(
-  constexpr_tests
-  TEST_PREFIX
-  "constexpr."
-  REPORTER
-  XML
-  OUTPUT_DIR
-  .
-  OUTPUT_PREFIX
-  "constexpr."
-  OUTPUT_SUFFIX
-  .xml)
-
-# Disable the constexpr portion of the test, and build again this allows us to have an executable
-# that we can debug when things go wrong with the constexpr testing
-add_executable(relaxed_constexpr_tests constexpr_tests.cpp)
-target_link_libraries(
-  relaxed_constexpr_tests
-  PRIVATE c_cpp_template::c_cpp_template_warnings
-          c_cpp_template::c_cpp_template_options
-          c_cpp_template::sample_library
-          Catch2::Catch2WithMain)
-target_compile_definitions(relaxed_constexpr_tests PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
-
-catch_discover_tests(
-  relaxed_constexpr_tests
-  TEST_PREFIX
-  "relaxed_constexpr."
-  REPORTER
-  XML
-  OUTPUT_DIR
-  .
-  OUTPUT_PREFIX
-  "relaxed_constexpr."
-  OUTPUT_SUFFIX
-  .xml)
+  PRIVATE c_cpp_template::c_cpp_template_options
+          c_cpp_template::c_cpp_template_warnings
+          gtest::gtest
+          c_cpp_template::sample_library)
+gtest_discover_tests(constexpr_tests)

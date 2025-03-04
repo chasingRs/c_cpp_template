@@ -62,6 +62,10 @@ jobs:
         run: |
           tsx project.mts test
 
+      - name: Coverage
+        run: |
+          tsx project.mts cov
+
       - name: Cmake pack
         run: |
           tsx project.mts pack

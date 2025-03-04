@@ -1,13 +1,14 @@
-import 'zx/globals'
 import { throws } from 'assert'
 import { PathOrFileDescriptor } from 'fs-extra'
+import { usePowerShell } from 'zx'
+import 'zx/globals'
 import { MSVCInstallDir } from './scripts/consts.mjs'
-import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
-import { usePowerShell } from 'zx';
 import { findCmdsInEnv, refreshEnv } from './scripts/envHelper.mts'
+import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
 
-const configPath = '.project.json'
-const presetsFile = 'CMakePresets.json'
+
+const cachePath = '.project_cache.json'
+const presetsFilePath = 'CMakePresets.json'
 let script_postfix = ''
 
 if (process.platform === 'win32') {
@@ -29,133 +30,159 @@ function parseJson(json: PathOrFileDescriptor) {
   }
 }
 
-interface SetupConfig {
-  presetsFile: PathOrFileDescriptor,
+// TODO: Add cmake option support
+interface CmakeOptions {
+  packagingMaintainerMode: boolean,
+  warningsAsErrors: boolean,
+  enableClangTidy: boolean,
+  enableCppCheck: boolean,
+  enableSanitizerLeak: boolean,
+  enableSanitizerUndefined: boolean,
+  enableSanitizerThread: boolean,
+  enableSanitizerMemory: boolean,
+  enableSanitizerAddress: boolean,
+  enableUnityBuild: boolean,
+  enablePch: boolean,
+  enableCache: boolean,
+  enableIpo: boolean,
+  enableUserLinker: boolean,
+  enableCoverage: boolean,
+  buildFuzzTests: boolean,
+  enableHardening: boolean,
+  enableGlobalHardening: boolean,
+  gitSha: string,
+}
+
+interface PresetContext {
+  presetsFilePath: PathOrFileDescriptor,
   selectedPreset: string,
 }
 
-interface ChangeConfig {
-  buildConfig?: {
-    target: string
-  }
-  launchConfig?: {
-    target: string
-    args: string
-  }
-  testConfig?: {
-    ctestArgs: string
+enum TargetType {
+  Build,
+  Launch,
+  Test,
+}
+
+interface TargetContext {
+  target: string
+  args: string
+}
+
+interface SetupContext {
+  preset: PresetContext
+}
+
+class CmakeOptionManager {
+  option: CmakeOptions
+  constructor(cachePath: PathOrFileDescriptor) {
+    this.option = parseJson(cachePath).cmakeOptions
   }
 }
 
-interface Config {
-  configPath: PathOrFileDescriptor
-  setup?: SetupConfig
-}
+class ProjectManager {
+  cachePath: PathOrFileDescriptor
+  // decided by the preset
+  preset: string
+  sourceDir: string
+  binaryDir: string
+  installDir: string
+  buildType: string
+  // decided by the user
+  buildTarget: string
+  launchTarget: string
+  launchArgs: string
+  testArgs: string
 
-class ProjectConfigs {
-  configPath: PathOrFileDescriptor
-  configureConfig: {
-    preset: string,
-    sourceDir: string,
-    binaryDir: string,
-    installDir: string,
-    buildType: string,
-  }
-  buildConfig: {
-    target: string,
-  }
-  launchConfig: {
-    target: string,
-    args: string,
-  }
-  testConfig: {
-    ctestArgs: string,
-  }
-
-  changeConfig(config: ChangeConfig) {
-    if (config.buildConfig) {
-      this.buildConfig = {
-        ...this.buildConfig,
-        target: config.buildConfig.target
-      }
+  setTargetContext(type: TargetType, context: TargetContext) {
+    switch (type) {
+      case TargetType.Build:
+        this.buildTarget = context.target
+        break
+      case TargetType.Launch:
+        this.launchTarget = context.target
+        this.launchArgs = context.args
+        break
+      case TargetType.Test:
+        this.testArgs = context.args
+        break
     }
-    if (config.launchConfig) {
-      this.launchConfig = {
-        ...this.launchConfig,
-        target: config.launchConfig.target,
-        args: config.launchConfig.args,
-      }
-    }
-    if (config.testConfig) {
-      this.testConfig = {
-        ...this.testConfig,
-        ctestArgs: config.testConfig.ctestArgs,
-      }
-    }
-    this._save2File(this.configPath)
+    this.save2File()
   }
 
-  constructor(config: Config) {
-    this.configPath = config.configPath
-    if (config.setup) {
-      this._setup(config.setup)
+  constructor(setup?: SetupContext) {
+    this.cachePath = cachePath
+    if (setup) {
+      this.setup(setup.preset)
     }
     else
       try {
-        const parsedConfig = this._fromJson(config.configPath)
-        this.configureConfig = parsedConfig.configureConfig
-        this.buildConfig = parsedConfig.buildConfig
-        this.launchConfig = parsedConfig.launchConfig
-        this.testConfig = parsedConfig.testConfig
-        this._save2File(config.configPath)
+        const parsedCache = this.fromJson(this.cachePath)
+        this.preset = parsedCache.preset
+        this.sourceDir = parsedCache.sourceDir
+        this.binaryDir = parsedCache.binaryDir
+        this.installDir = parsedCache.installDir
+        this.buildType = parsedCache.buildType
+        this.buildTarget = parsedCache.buildTarget
+        this.launchTarget = parsedCache.launchTarget
+        this.launchArgs = parsedCache.launchArgs
+        this.testArgs = parsedCache.testArgs
       } catch (e) {
-        console.error('Unable to parse config from json file, possibly forgot to run setup first?')
+        console.error(`Unable to parse config from json file:${{ e }}, possibly forgot to run setup first?`)
       }
   }
 
   // NOTE: Change follow to set a default value for each config
-  _setup = function (setupConfig: SetupConfig) {
-    const presets = parseJson(setupConfig.presetsFile)
-    // for replace
+  private setup = function (preset: PresetContext) {
+    const presets = parseJson(preset.presetsFilePath)
+    // these variables is used by 'eval' command bellow
     const sourceDir = process.cwd()
-    const presetName = setupConfig.selectedPreset
-    this.configureConfig = {
-      preset: setupConfig.selectedPreset,
-      sourceDir: process.cwd(),
-      binaryDir: presets.configurePresets[0].binaryDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
-      installDir: presets.configurePresets[0].installDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
-      buildType: presets.configurePresets.find(item => item.name == setupConfig.selectedPreset).cacheVariables.CMAKE_BUILD_TYPE,
+    const presetName = preset.selectedPreset
+    this.preset = preset.selectedPreset
+    this.sourceDir = process.cwd()
+    try {
+      this.binaryDir = presets.configurePresets[0].binaryDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1))
+      this.installDir = presets.configurePresets[0].installDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1))
+      this.buildType = presets.configurePresets.find(item => item.name == preset.selectedPreset).cacheVariables.CMAKE_BUILD_TYPE
+    } catch (e) {
+      console.error(chalk.redBright('Error: Failed to parser cmake presets, please check the exists of this preset'))
+      process.exit(1)
     }
-    this.buildConfig = {
-      target: "all"
-    }
-    this.launchConfig = {
-      target: "",
-      args: "",
-    }
-    this.testConfig = {
-      ctestArgs: "",
-    }
-    this._save2File(configPath)
+    this.buildTarget = 'all'
+    this.launchTarget = ''
+    this.launchArgs = ''
+    this.testArgs = ''
+    this.save2File()
   }
 
-  _save2File = function (filePath: PathOrFileDescriptor) {
-    fs.writeFileSync(filePath, JSON.stringify(this, null, 2))
+  private save2File = function () {
+    let cache2Save = {
+      preset: this.preset,
+      sourceDir: this.sourceDir,
+      binaryDir: this.binaryDir,
+      installDir: this.installDir,
+      buildType: this.buildType,
+      buildTarget: this.buildTarget,
+      launchTarget: this.launchTarget,
+      launchArgs: this.launchArgs,
+      testArgs: this.testArgs
+    }
+    fs.writeFileSync(this.cachePath, JSON.stringify(cache2Save, null, 2))
   }
 
-  _fromJson(filePath: PathOrFileDescriptor) {
+  private fromJson(filePath: PathOrFileDescriptor) {
     return parseJson(filePath)
   }
 }
 
 class Excutor {
-  projectConfigs: ProjectConfigs
+  projectManager: ProjectManager
 
-  constructor(config: ProjectConfigs) {
-    this.projectConfigs = config
+  constructor(projectManager: ProjectManager) {
+    this.projectManager = projectManager
   }
 
-  _refreshEnvFromScript = function (script: string) {
+  private refreshEnvFromScript = function (script: string) {
     if (process.platform === 'win32') {
       refreshEnv(script)
     }
@@ -165,13 +192,13 @@ class Excutor {
   }
 
   clean = async function () {
-    if (fs.existsSync(this.projectConfigs.configureConfig.binaryDir)) {
-      await fs.remove(this.projectConfigs.configureConfig.binaryDir)
+    if (fs.existsSync(this.projectManager.binaryDir)) {
+      await fs.remove(this.projectManager.binaryDir)
     }
   }
 
   cmakeConfigure = async function () {
-    if (this.projectConfigs.configureConfig.preset.includes('msvc')) {
+    if (this.projectManager.preset.includes('msvc')) {
       setupMSVCDevCmd(
         "x64",
         MSVCInstallDir,
@@ -181,20 +208,20 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeConfigreCommand = `"cmake -S . --preset=${this.projectConfigs.configureConfig.preset}"`
+      const cmakeConfigreCommand = `"cmake -S . --preset=${this.projectManager.preset}"`
       await $`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
-      const newItemCommand = `"New-Item -ItemType SymbolicLink -Path ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json -Target ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json"`
+      const newItemCommand = `"New-Item -ItemType SymbolicLink -Path ${this.projectManager.sourceDir}/compile_commands.json -Target ${this.projectManager.binaryDir}/compile_commands.json"`
       await $`powershell -Command ${newItemCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake -S . --preset=${this.projectConfigs.configureConfig.preset}`.pipe(process.stderr)
-      await $`ln -sfr ${this.projectConfigs.configureConfig.binaryDir}/compile_commands.json ${this.projectConfigs.configureConfig.sourceDir}/compile_commands.json `.pipe(process.stderr)
+      await $`cmake -S . --preset=${this.projectManager.preset}`.pipe(process.stderr)
+      await $`ln -sfr ${this.projectManager.binaryDir}/compile_commands.json ${this.projectManager.sourceDir}/compile_commands.json `.pipe(process.stderr)
     }
   }
 
   cmakeBuild = async function () {
-    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanbuild.${script_postfix}`)
-    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
-    if (this.projectConfigs.configureConfig.preset.includes('msvc')) {
+    this.refreshEnvFromScript(`${this.projectManager.binaryDir}/conan/build/${this.projectManager.buildType}/generators/conanbuild.${script_postfix}`)
+    this.refreshEnvFromScript(`${this.projectManager.binaryDir}/conan/build/${this.projectManager.buildType}/generators/conanrun.${script_postfix}`)
+    if (this.projectManager.preset.includes('msvc')) {
       setupMSVCDevCmd(
         "x64",
         MSVCInstallDir,
@@ -204,54 +231,65 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeBuildCommand = `"cmake --build ${this.projectConfigs.configureConfig.binaryDir} --target ${this.projectConfigs.buildConfig.target}"`
+      const cmakeBuildCommand = `"cmake --build ${this.projectManager.binaryDir} --target ${this.projectManager.buildTarget}"`
       await $`powershell -Command ${cmakeBuildCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake --build ${this.projectConfigs.configureConfig.binaryDir} --target ${this.projectConfigs.buildConfig.target} `.pipe(process.stderr)
+      await $`cmake --build ${this.projectManager.binaryDir} --target ${this.projectManager.buildTarget} `.pipe(process.stderr)
     }
   }
 
   runTarget = async function () {
-    this.projectConfigs.buildConfig.target = this.projectConfigs.launchConfig.target
+    this.projectManager.buildTarget = this.projectManager.launchTarget
     await this.cmakeBuild()
-    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
+    this.refreshEnvFromScript(`${this.projectManager.binaryDir}/conan/build/${this.projectManager.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTargetCommand = `"${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}"`
+      const runTargetCommand = `"${this.projectManager.binaryDir}/bin/${this.projectManager.launchTarget}.exe ${this.projectManager.launchArgs}"`
       await $({ stdio: ['inherit', 'pipe', 'pipe'] })`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
     } else {
-      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`${this.projectConfigs.configureConfig.binaryDir}/bin/${this.projectConfigs.launchConfig.target} ${this.projectConfigs.launchConfig.args}`.pipe(process.stderr)
+      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`${this.projectManager.binaryDir}/bin/${this.projectManager.launchTarget} ${this.projectManager.launchArgs}`.pipe(process.stderr)
     }
   }
 
-  runTestAndCov = async function () {
+  runTest = async function () {
     await this.cmakeBuild()
-    this._refreshEnvFromScript(`${this.projectConfigs.configureConfig.binaryDir}/conan/build/${this.projectConfigs.configureConfig.buildType}/generators/conanrun.${script_postfix}`)
+    this.refreshEnvFromScript(`${this.projectManager.binaryDir}/conan/build/${this.projectManager.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.projectConfigs.configureConfig.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.projectConfigs.testConfig.ctestArgs}"`
+      const runTestCommand = `"ctest ${this.projectManager.testArgs}"`
       await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
     } else {
-      await $`ctest --preset ${this.projectConfigs.configureConfig.preset} ${this.projectConfigs.testConfig.ctestArgs}`.pipe(process.stderr)
-      await $`gcovr --delete --root . --print-summary --xml-pretty --xml ${this.projectConfigs.configureConfig.binaryDir}/coverage.xml . --gcov-executable gcov`.pipe(process.stderr)
+      await $`ctest --preset ${this.projectManager.preset} ${this.projectManager.testArgs}`.pipe(process.stderr)
+    }
+  }
+
+  runCov = async function () {
+    await this.cmakeBuild()
+    this.refreshEnvFromScript(`${this.projectManager.binaryDir}/conan/build/${this.projectManager.buildType}/generators/conanrun.${script_postfix}`)
+    if (process.platform === 'win32') {
+      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.projectManager.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.projectManager.testArgs}"`
+      await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
+    } else {
+      await $`ctest --preset ${this.projectManager.preset} ${this.projectManager.testArgs}`.pipe(process.stderr)
+      await $`gcovr --delete --root . --print-summary --xml-pretty --xml ${this.projectManager.binaryDir}/coverage.xml . --gcov-executable gcov`.pipe(process.stderr)
     }
   }
 
   install = async function () {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
-      const cpackCommand = `"cmake --install ${this.projectConfigs.configureConfig.binaryDir}"`
+      const cpackCommand = `"cmake --install ${this.projectManager.binaryDir}"`
       await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake --install ${this.projectConfigs.configureConfig.binaryDir}`.pipe(process.stderr)
+      await $`cmake --install ${this.projectManager.binaryDir}`.pipe(process.stderr)
     }
   }
 
   cpack = async function () {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
-      const cpackCommand = `"cd ${this.projectConfigs.configureConfig.binaryDir};cpack"`
+      const cpackCommand = `"cd ${this.projectManager.binaryDir};cpack"`
       await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
     } else {
-      await $`cd ${this.projectConfigs.configureConfig.binaryDir} && cpack`.pipe(process.stderr)
+      await $`cd ${this.projectManager.binaryDir} && cpack`.pipe(process.stderr)
     }
   }
 }
@@ -259,9 +297,8 @@ class Excutor {
 function showHelp() {
   console.log(chalk.green(' This script is used to run target flexible'))
   console.log(chalk.green(' usage: project.mjs <action> [target] [-- args]'))
-  console.log(chalk.green(' for example: '))
-  console.log("\n")
-  console.log(chalk.green(' Get help'))
+  console.log(chalk.green(' for example:\n'))
+  console.log(chalk.green(' Geting help'))
   console.log(chalk.green(' tsx project.mts                                     ---show help'))
   console.log(chalk.green(' tsx project.mts -h                                  ---show help'))
   console.log(chalk.green(' tsx project.mts --help                              ---show help'))
@@ -322,17 +359,9 @@ async function main() {
     }
   }
 
-  let changeConfig = {
-    buildConfig: {
-      target: 'all'
-    },
-    launchConfig: {
-      target: '',
-      args: '',
-    },
-    testConfig: {
-      ctestArgs: ''
-    }
+  let targetContext = {
+    target: '',
+    args: '',
   }
 
   if (myArgv._[0] == 'setup') {
@@ -341,16 +370,16 @@ async function main() {
       console.error(chalk.redBright('Please specify a preset to setup'))
       process.exit(1)
     }
-    const setup = {
-      presetsFile,
+    const setup_preset: PresetContext = {
+      presetsFilePath,
       selectedPreset: myArgv._[1],
     }
-    new ProjectConfigs({ configPath, setup })
+    new ProjectManager({ preset: setup_preset })
     return
   }
 
-  const config = new ProjectConfigs({ configPath })
-  const excutor = new Excutor(config)
+  const projectManager = new ProjectManager()
+  const excutor = new Excutor(projectManager)
 
   switch (myArgv._[0]) {
     case 'clean':
@@ -363,40 +392,56 @@ async function main() {
       await excutor.cmakeConfigure()
       break
     case 'build':
+      targetContext.target = projectManager.buildTarget
       console.log(chalk.greenBright('Building project...'))
       if (myArgv._.length > 1) {
         console.log(chalk.greenBright('Building target:', myArgv._[1]))
-        changeConfig.buildConfig.target = myArgv._[1]
+        targetContext.target = myArgv._[1]
       } else {
         console.log(chalk.greenBright("Building all targets"))
-        changeConfig.buildConfig.target = 'all'
+        targetContext.target = 'all'
       }
-      config.changeConfig(changeConfig)
+      projectManager.setTargetContext(TargetType.Build, targetContext)
       await excutor.cmakeBuild()
       break
     case 'run':
+      targetContext.target = projectManager.launchTarget
+      targetContext.args = projectManager.launchArgs
       if (myArgv._.length > 1) {
         console.log(chalk.greenBright('Runing target:', myArgv._[1]))
-        changeConfig.launchConfig.target = myArgv._[1]
-        if (myArgv['--']) {
-          console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
-          changeConfig.launchConfig.args = myArgv['--'].join(' ')
-        }
-      } else {
+        targetContext.target = myArgv._[1]
+      }
+      else if (targetContext.target != '') {
+        console.log(chalk.greenBright('Runing target:', targetContext.target))
+      }
+      else {
         console.error(chalk.redBright("Please specify a target to run"))
         return
       }
-      config.changeConfig(changeConfig)
+      if (myArgv['--'] && myArgv['--'].length > 0) {
+        console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
+        targetContext.args = myArgv['--'].join(' ')
+      }
+      projectManager.setTargetContext(TargetType.Launch, targetContext)
       await excutor.runTarget()
       break
     case 'test':
+      targetContext.args = projectManager.testArgs
       console.log(chalk.greenBright('Testing project...'))
-      if (myArgv['--']) {
-        console.log('args:', myArgv['--'].join(' '))
-        changeConfig.testConfig.ctestArgs = myArgv['--'].join(' ')
-        config.changeConfig(changeConfig)
-        await excutor.runTestAndCov()
+      if (myArgv['--'] && myArgv['--'].length > 0) {
+        targetContext.args = myArgv['--'].join(' ')
+        projectManager.setTargetContext(TargetType.Test, targetContext)
       }
+      await excutor.runTest()
+      break
+    case 'cov':
+      targetContext.args = projectManager.testArgs
+      console.log(chalk.greenBright('Getting Coverage of this project...'))
+      if (myArgv['--'] && myArgv['--'].length > 0) {
+        targetContext.args = myArgv['--'].join(' ')
+        projectManager.setTargetContext(TargetType.Test, targetContext)
+      }
+      await excutor.runCov()
       break
     case 'install':
       console.log(chalk.greenBright('Installing project...'))

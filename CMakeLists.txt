@@ -23,7 +23,6 @@ project(
 # TODO:currently in develop mode, should be removed in productive environment
 set(c_cpp_template_PACKAGING_MAINTAINER_MODE ON)
 
-
 include(cmake/PreventInSourceBuilds.cmake)
 include(ProjectOptions.cmake)
 
@@ -32,8 +31,6 @@ c_cpp_template_setup_options()
 c_cpp_template_global_options()
 
 c_cpp_template_local_options()
-
-
 
 # don't know if this should be set globally from here or not...
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -104,8 +101,7 @@ include(cmake/PackageProject.cmake)
 # know we want to ship
 c_cpp_template_package_project(
   TARGETS
-  json_parser
-  opencv_test
+  intro
   # c_cpp_template_options
   # c_cpp_template_warnings
   # FIXME: this does not work! CK PRIVATE_DEPENDENCIES_CONFIGURED project_options project_warnings

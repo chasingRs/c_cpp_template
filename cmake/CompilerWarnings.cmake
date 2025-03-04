@@ -4,7 +4,7 @@
 
 function(
   c_cpp_template_set_project_warnings
-  project_name
+  project
   WARNINGS_AS_ERRORS
   MSVC_WARNINGS
   CLANG_WARNINGS
@@ -106,7 +106,7 @@ function(
   set(PROJECT_WARNINGS_CUDA "${CUDA_WARNINGS}")
 
   target_compile_options(
-    ${project_name}
+    ${project}
     INTERFACE # C++ warnings
               $<$<COMPILE_LANGUAGE:CXX>:${PROJECT_WARNINGS_CXX}>
               # C warnings

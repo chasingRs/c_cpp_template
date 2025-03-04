@@ -20,7 +20,7 @@ endmacro()
 macro(c_cpp_template_setup_options)
   # NOTE: enable hardening may cause build failed in debug mode
   option(c_cpp_template_ENABLE_HARDENING "Enable hardening" OFF)
-  option(c_cpp_template_ENABLE_COVERAGE "Enable coverage reporting" ON)
+  option(c_cpp_template_ENABLE_COVERAGE "Enable coverage reporting" OFF)
   cmake_dependent_option(
     c_cpp_template_ENABLE_GLOBAL_HARDENING
     "Attempt to push hardening options to built dependencies"

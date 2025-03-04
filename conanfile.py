@@ -22,7 +22,8 @@ class ConanApplication(ConanFile):
         # requirements = self.conan_data.get("requirements", [])
         # for requirement in requirements:
         #     self.requires(requirement)
-        self.requires("catch2/3.7.1")
+        self.requires("fmt/10.2.1")
+        self.requires("gtest/1.15.0")
         self.requires("spdlog/1.14.1")
         self.requires("jsoncpp/1.9.6")
         self.requires("dbg-macro/0.5.1")
