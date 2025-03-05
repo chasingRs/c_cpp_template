@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "zx": "^8.2.4"
+    "zx": "^8.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9"
   }
 }
