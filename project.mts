@@ -11,6 +11,8 @@ const cachePath = '.project_cache.json'
 const presetsFilePath = 'CMakePresets.json'
 let script_postfix = ''
 
+const $$ = $({ nothrow: true })
+
 if (process.platform === 'win32') {
   usePowerShell()
   script_postfix = 'bat'
@@ -30,7 +32,6 @@ function jsonParse(json: PathOrFileDescriptor) {
   }
 }
 
-// TODO: Add cmake option support
 interface CmakeOptionsContext {
   packagingMaintainerMode: boolean,
   warningsAsErrors: boolean,
@@ -65,8 +66,8 @@ enum TargetType {
 }
 
 interface TargetContext {
-  target: string
-  args: string
+  target: string[]
+  args: string[]
 }
 
 interface SetupContext {
@@ -82,10 +83,10 @@ interface ProjectContext {
   installDir: string
   buildType: string
   // decided by the user
-  buildTarget: string
-  launchTarget: string
-  launchArgs: string
-  testArgs: string
+  buildTarget: string[]
+  launchTarget: string[]
+  launchArgs: string[]
+  testArgs: string[]
 }
 
 interface State {
@@ -141,10 +142,10 @@ class ProjectContext {
       this.projectContext = {
         cmakePreset: preset.selectedPreset,
         sourceDir: process.cwd(),
-        buildTarget: 'all',
-        launchTarget: '',
-        launchArgs: '',
-        testArgs: '',
+        buildTarget: ['all'],
+        launchTarget: [],
+        launchArgs: [],
+        testArgs: [],
         projectName: env.PROJECT_NAME,
         binaryDir: presets.configurePresets[0].binaryDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
         installDir: presets.configurePresets[0].installDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
@@ -159,11 +160,11 @@ class ProjectContext {
       warningsAsErrors: false,
       enableClangTidy: false,
       enableCppcheck: false,
-      enableSanitizerLeak: false,
-      enableSanitizerUndefined: false,
-      enableSanitizerThread: false,
-      enableSanitizerMemory: false,
-      enableSanitizerAddress: false,
+      enableSanitizerLeak: true,
+      enableSanitizerUndefined: true,
+      enableSanitizerThread: true,
+      enableSanitizerMemory: true,
+      enableSanitizerAddress: true,
       enableUnityBuild: false,
       enablePch: false,
       enableCache: false,
@@ -173,7 +174,7 @@ class ProjectContext {
       buildFuzzTests: false,
       enableHardening: false,
       enableGlobalHardening: false,
-      gitSha: 'unknown'
+      gitSha: process.env.GITHUB_SHA ? process.env.GITHUB_SHA : 'unkown'
     }
     this.state = {
       needReconfig: true
@@ -222,6 +223,7 @@ class Excutor {
   }
 
   cmakeConfigure = async function () {
+    this.context.state.needReconfig = false
     if (this.context.projectContext.cmakePreset.includes('msvc')) {
       setupMSVCDevCmd(
         "x64",
@@ -233,19 +235,18 @@ class Excutor {
         undefined
       );
       const cmakeConfigreCommand = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`
-      await $`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
+      await $$`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
       const newItemCommand = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.binaryDir}/compile_commands.json"`
-      await $`powershell -Command ${newItemCommand}`.pipe(process.stderr)
+      await $$`powershell -Command ${newItemCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform()}`.pipe(process.stderr)
-      await $`ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json `.pipe(process.stderr)
+      await $$`cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform()}`.pipe(process.stderr)
+      await $$`ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json `.pipe(process.stderr)
     }
   }
 
   cmakeBuild = async function () {
     if (this.context.state.needReconfig) {
       await this.cmakeConfigure()
-      this.context.state.needReconfig = false
     }
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanbuild.${script_postfix}`)
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
@@ -259,10 +260,11 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeBuildCommand = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget}"`
-      await $`powershell -Command ${cmakeBuildCommand}`.pipe(process.stderr)
+      const cmakeBuildCommand = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}"`
+      await $$`powershell -Command ${cmakeBuildCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget} `.pipe(process.stderr)
+      const cmd = `cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}`.trim()
+      await $$`bash -c ${cmd}`.pipe(process.stderr)
     }
   }
 
@@ -271,20 +273,22 @@ class Excutor {
     await this.cmakeBuild()
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTargetCommand = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget}.exe ${this.context.projectContext.launchArgs}"`
-      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
+      // WARN: Only run the first target
+      const runTargetCommand = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]}.exe ${this.context.projectContext.launchArgs.join(' ')}"`.trim()
+      await $$({ stdio: ['inherit', 'pipe', 'pipe'] })`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
     } else {
-      await $({ stdio: ['inherit', 'pipe', 'pipe'] })`${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget} ${this.context.projectContext.launchArgs}`.pipe(process.stderr)
+      const cmd = `${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]} ${this.context.projectContext.launchArgs.join(' ')}`.trim()
+      await $$({ stdio: ['inherit', 'pipe', 'pipe'] })`bash -c ${cmd}`.pipe(process.stderr)
     }
   }
   runTest = async function () {
     await this.cmakeBuild()
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"ctest ${this.context.projectContext.testArgs}"`
-      await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
+      const runTestCommand = `"ctest ${this.context.projectContext.testArgs.join(' ')}"`
+      await $$`powershell -Command ${runTestCommand}`.pipe(process.stderr)
     } else {
-      await $`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs}`.pipe(process.stderr)
+      await $$`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.pipe(process.stderr)
     }
   }
 
@@ -293,16 +297,16 @@ class Excutor {
       console.log(chalk.yellowBright('Coverage is not enabled, trying to enable it and build again...'))
       this.context.cmakeOptionsContext.enableCoverage = true
       await this.cmakeConfigure()
-      this.context.state.needReconfig = true
+      this.context.cmakeOptionsContext.enableCoverage = false
     }
     await this.cmakeBuild()
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs}"`
-      await $`powershell -Command ${runTestCommand}`.pipe(process.stderr)
+      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`
+      await $$`powershell -Command ${runTestCommand}`.pipe(process.stderr)
     } else {
-      await $`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs}`.pipe(process.stderr)
-      await $`gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`.pipe(process.stderr)
+      await $$`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.pipe(process.stderr)
+      await $$`gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`.pipe(process.stderr)
     }
   }
 
@@ -310,9 +314,9 @@ class Excutor {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
       const cpackCommand = `"cmake --install ${this.context.projectContext.binaryDir}"`
-      await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
+      await $$`powershell -Command ${cpackCommand}`.pipe(process.stderr)
     } else {
-      await $`cmake --install ${this.context.projectContext.binaryDir}`.pipe(process.stderr)
+      await $$`cmake --install ${this.context.projectContext.binaryDir}`.pipe(process.stderr)
     }
   }
 
@@ -320,9 +324,9 @@ class Excutor {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
       const cpackCommand = `"cd ${this.context.projectContext.binaryDir};cpack"`
-      await $`powershell -Command ${cpackCommand}`.pipe(process.stderr)
+      await $$`powershell -Command ${cpackCommand}`.pipe(process.stderr)
     } else {
-      await $`cd ${this.context.projectContext.binaryDir} && cpack`.pipe(process.stderr)
+      await $$`cd ${this.context.projectContext.binaryDir} && cpack`.pipe(process.stderr)
     }
   }
 }
@@ -393,8 +397,8 @@ async function main() {
   }
 
   let targetContext = {
-    target: '',
-    args: '',
+    target: new Array<string>(),
+    args: new Array<string>()
   }
 
   if (myArgv._[0] == 'setup') {
@@ -429,11 +433,11 @@ async function main() {
     case 'build':
       targetContext.target = context.projectContext.buildTarget
       if (myArgv._.length > 1) {
-        console.log(chalk.greenBright('Building target:', myArgv._[1]))
-        targetContext.target = myArgv._[1]
+        console.log(chalk.greenBright('Building target:', myArgv._.slice(1).join(',')))
+        targetContext.target = myArgv._.slice(1)
       } else {
         console.log(chalk.greenBright("Building all targets"))
-        targetContext.target = 'all'
+        targetContext.target = ['all']
       }
       context.setTargetContext(TargetType.Build, targetContext)
       await excutor.cmakeBuild()
@@ -443,10 +447,10 @@ async function main() {
       targetContext.args = context.projectContext.launchArgs
       if (myArgv._.length > 1) {
         console.log(chalk.greenBright('Runing target:', myArgv._[1]))
-        targetContext.target = myArgv._[1]
+        targetContext.target = myArgv._.slice(1)
       }
-      else if (targetContext.target != '') {
-        console.log(chalk.greenBright('Runing target:', targetContext.target))
+      else if (targetContext.target.length !== 0) {
+        console.log(chalk.greenBright('Runing target:', targetContext.target.join(' ')))
       }
       else {
         console.error(chalk.redBright("Please specify a target to run"))
@@ -454,7 +458,7 @@ async function main() {
       }
       if (myArgv['--'] && myArgv['--'].length > 0) {
         console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
-        targetContext.args = myArgv['--'].join(' ')
+        targetContext.args = myArgv['--']
       }
       context.setTargetContext(TargetType.Launch, targetContext)
       await excutor.runTarget()
@@ -463,7 +467,8 @@ async function main() {
       targetContext.args = context.projectContext.testArgs
       console.log(chalk.greenBright('Testing project...'))
       if (myArgv['--'] && myArgv['--'].length > 0) {
-        targetContext.args = myArgv['--'].join(' ')
+        console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
+        targetContext.args = myArgv['--']
         context.setTargetContext(TargetType.Test, targetContext)
       }
       await excutor.runTest()
@@ -472,7 +477,7 @@ async function main() {
       targetContext.args = context.projectContext.testArgs
       console.log(chalk.greenBright('Getting Coverage of this project...'))
       if (myArgv['--'] && myArgv['--'].length > 0) {
-        targetContext.args = myArgv['--'].join(' ')
+        targetContext.args = myArgv['--']
         context.setTargetContext(TargetType.Test, targetContext)
       }
       await excutor.runCov()

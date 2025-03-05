@@ -176,7 +176,11 @@ function(detect_cxx_standard CXX_STANDARD)
   set(${CXX_STANDARD}
       ${CMAKE_CXX_STANDARD}
       PARENT_SCOPE)
-  if(CMAKE_CXX_EXTENSIONS)
+  if(CMAKE_CXX_EXTENSIONS
+     AND NOT
+         ${MYCOMPILER}
+         STREQUAL
+         "msvc")
     set(${CXX_STANDARD}
         "gnu${CMAKE_CXX_STANDARD}"
         PARENT_SCOPE)

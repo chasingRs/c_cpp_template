@@ -1,9 +1,7 @@
-# UNKOWN: changed cmake_minimum_required from 3.21 to 3.27 to prevent compile error
+# Changed cmake_minimum_required from 3.21 to 3.27 to prevent compile error
 cmake_minimum_required(VERSION 3.27)
-set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "cmake/ConanProvider.cmake")
-# This template attempts to be "fetch_content"-able so that it works well with tools like CPM or
-# other manual dependency management
 
+set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "cmake/ConanProvider.cmake")
 # Only set the cxx_standard if it is not set by someone else
 if(NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -12,6 +10,7 @@ endif()
 # strongly encouraged to enable this globally to avoid conflicts between -Wpedantic being enabled
 # and -std=c++20 and -std=gnu++20 for example when compiling with PCH enabled
 set(CMAKE_CXX_EXTENSIONS ON)
+
 # Set the project name and language
 project(
   c_cpp_template
@@ -19,9 +18,6 @@ project(
   DESCRIPTION ""
   HOMEPAGE_URL "%%myurl%%"
   LANGUAGES CXX C)
-
-# TODO:currently in develop mode, should be removed in productive environment
-set(c_cpp_template_PACKAGING_MAINTAINER_MODE ON)
 
 include(cmake/PreventInSourceBuilds.cmake)
 include(ProjectOptions.cmake)
