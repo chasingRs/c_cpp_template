@@ -67,10 +67,6 @@ jobs:
         run: |
           tsx project.mts cov
 
-      - name: Cmake install
-        run: |
-          tsx project.mts install
-
       - name: Cmake pack
         run: |
           tsx project.mts pack

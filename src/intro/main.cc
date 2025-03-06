@@ -14,8 +14,8 @@
 #include <string>
 
 int main( [[maybe_unused]] int argc, [[maybe_unused]] char* argv[] ) {
-    spdlog::info( "hello world" );
     spdlog::set_level( spdlog::level::debug );
+    spdlog::info( "hello world" );
     spdlog::debug( "hello world" );
     dbg( "hello world" );
     std::cout << cv::getBuildInformation() << std::endl;
