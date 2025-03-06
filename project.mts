@@ -260,7 +260,7 @@ class Excutor {
         undefined
       );
       const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`.trim()
-      const copyCompileCommandsCmd = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
+      const copyCompileCommandsCmd = `"if (Test-Path ${this.context.projectContext.sourceDir}/compile_commands.json) { Remove-Item ${this.context.projectContext.sourceDir}/compile_commands.json } New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else {
@@ -320,7 +320,7 @@ class Excutor {
     }
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
+      const runTestCommand = `"ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runTestCommand, 'Run test failed')
     } else {
       const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
