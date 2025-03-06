@@ -260,7 +260,7 @@ class Excutor {
         undefined
       );
       const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`.trim()
-      const copyCompileCommandsCmd = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.binaryDir}/compile_commands.json"`
+      const copyCompileCommandsCmd = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else {
@@ -475,6 +475,7 @@ async function main() {
     } else {
       await excutor.runCov()
     }
+    context.stateMachine.currentState = State.Cov
   } else {
     if (context.cmakeOptionsContext.enableCoverage === false && context.stateMachine.currentState === State.Cov) {
       console.log(chalk.yellowBright('Last time run coverage with COVERAGE flag on temporarily, trying to reconfigure the project...'))

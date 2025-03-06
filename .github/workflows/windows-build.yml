@@ -85,4 +85,3 @@ jobs:
           name: ${{ runner.os }}-coverage
           files: ./out/coverage/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true # optional (default = false)
