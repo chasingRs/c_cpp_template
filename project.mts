@@ -11,7 +11,7 @@ const cachePath = '.project_cache.json'
 const presetsFilePath = 'CMakePresets.json'
 let script_postfix = ''
 
-const $$ = $({ nothrow: true })
+const $$ = $({ stdio: 'inherit' })
 
 if (process.platform === 'win32') {
   usePowerShell()
@@ -162,7 +162,7 @@ class ProjectContext {
       enableCppcheck: false,
       enableSanitizerLeak: true,
       enableSanitizerUndefined: true,
-      enableSanitizerThread: true,
+      enableSanitizerThread: false,
       enableSanitizerMemory: true,
       enableSanitizerAddress: true,
       enableUnityBuild: false,
@@ -202,12 +202,6 @@ class Excutor {
     }
   }
 
-  clean = async function () {
-    if (fs.existsSync(this.context.projectContext.binaryDir)) {
-      await fs.remove(this.context.projectContext.binaryDir)
-    }
-  }
-
   private camelToSnake = function (str: string) {
     return str.replace(/[A-Z]/g, letter => `_${letter}`)
   }
@@ -222,6 +216,25 @@ class Excutor {
     return cmakeOptions
   }
 
+  private async excutecheckExitCode(cmd: string, errorMsg: string) {
+    if (process.platform === 'win32') {
+      if (await $$`powershell -Command ${cmd}`.exitCode !== 0) {
+        throw new Error(errorMsg)
+      }
+    } else if (process.platform === 'linux') {
+      if (await $$`bash -c ${cmd}`.exitCode !== 0) {
+        throw new Error(errorMsg)
+      }
+    }
+  }
+
+  clean = async function () {
+    if (fs.existsSync(this.context.projectContext.binaryDir)) {
+      await fs.remove(this.context.projectContext.binaryDir)
+    }
+  }
+
+
   cmakeConfigure = async function () {
     this.context.state.needReconfig = false
     if (this.context.projectContext.cmakePreset.includes('msvc')) {
@@ -234,13 +247,15 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeConfigreCommand = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`
-      await $$`powershell -Command ${cmakeConfigreCommand}`.pipe(process.stderr)
-      const newItemCommand = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.binaryDir}/compile_commands.json"`
-      await $$`powershell -Command ${newItemCommand}`.pipe(process.stderr)
+      const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`.trim()
+      const copyCompileCommandsCmd = `"New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.binaryDir}/compile_commands.json"`
+      await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
+      await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else {
-      await $$`cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform()}`.pipe(process.stderr)
-      await $$`ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json `.pipe(process.stderr)
+      const cmakeConfigreCmd = `cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}`.trim()
+      const copyCompileCommandsCmd = `ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json`
+      await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
+      await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
     }
   }
 
@@ -260,11 +275,11 @@ class Excutor {
         false,
         undefined
       );
-      const cmakeBuildCommand = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}"`
-      await $$`powershell -Command ${cmakeBuildCommand}`.pipe(process.stderr)
+      const cmakeBuildCmd = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}"`.trim()
+      await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
     } else {
-      const cmd = `cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}`.trim()
-      await $$`bash -c ${cmd}`.pipe(process.stderr)
+      const cmakeBuildCmd = `cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}`.trim()
+      await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
     }
   }
 
@@ -274,21 +289,22 @@ class Excutor {
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
       // WARN: Only run the first target
-      const runTargetCommand = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]}.exe ${this.context.projectContext.launchArgs.join(' ')}"`.trim()
-      await $$({ stdio: ['inherit', 'pipe', 'pipe'] })`powershell -Command ${runTargetCommand}`.pipe(process.stderr)
+      const runTargetCmd = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]}.exe ${this.context.projectContext.launchArgs.join(' ')}"`.trim()
+      await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
     } else {
-      const cmd = `${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]} ${this.context.projectContext.launchArgs.join(' ')}`.trim()
-      await $$({ stdio: ['inherit', 'pipe', 'pipe'] })`bash -c ${cmd}`.pipe(process.stderr)
+      const runTargetCmd = `${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]} ${this.context.projectContext.launchArgs.join(' ')}`.trim()
+      await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
     }
   }
   runTest = async function () {
     await this.cmakeBuild()
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"ctest ${this.context.projectContext.testArgs.join(' ')}"`
-      await $$`powershell -Command ${runTestCommand}`.pipe(process.stderr)
+      const runTestCommand = `"ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
+      await this.excutecheckExitCode(runTestCommand, 'Run test failed')
     } else {
-      await $$`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.pipe(process.stderr)
+      const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
+      await this.excutecheckExitCode(runTestCmd, 'Run test failed')
     }
   }
 
@@ -302,21 +318,24 @@ class Excutor {
     await this.cmakeBuild()
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
-      const runTestCommand = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`
-      await $$`powershell -Command ${runTestCommand}`.pipe(process.stderr)
+      const runCovCmd = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
+      await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     } else {
-      await $$`ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.pipe(process.stderr)
-      await $$`gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`.pipe(process.stderr)
+      const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
+      const runCovCmd = `gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`
+      await this.excutecheckExitCode(runTestCmd, 'Run test failed')
+      await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     }
   }
 
   install = async function () {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
-      const cpackCommand = `"cmake --install ${this.context.projectContext.binaryDir}"`
-      await $$`powershell -Command ${cpackCommand}`.pipe(process.stderr)
+      const cpackCommand = `"cmake --install ${this.context.projectContext.binaryDir}"`.trim()
+      await this.excutecheckExitCode(cpackCommand, 'Install failed')
     } else {
-      await $$`cmake --install ${this.context.projectContext.binaryDir}`.pipe(process.stderr)
+      const installCmd = `cmake --install ${this.context.projectContext.binaryDir}`.trim()
+      await this.excutecheckExitCode(installCmd, 'Install failed')
     }
   }
 
@@ -324,9 +343,10 @@ class Excutor {
     await this.cmakeBuild()
     if (process.platform === 'win32') {
       const cpackCommand = `"cd ${this.context.projectContext.binaryDir};cpack"`
-      await $$`powershell -Command ${cpackCommand}`.pipe(process.stderr)
+      await this.excutecheckExitCode(cpackCommand, 'Pack failed')
     } else {
-      await $$`cd ${this.context.projectContext.binaryDir} && cpack`.pipe(process.stderr)
+      const cpackCmd = `cd ${this.context.projectContext.binaryDir} && cpack`.trim()
+      await this.excutecheckExitCode(cpackCmd, 'Pack failed')
     }
   }
 }
@@ -379,9 +399,9 @@ async function main() {
   const myArgv = minimist(process.argv.slice(2), {
     ['--']: true
   })
-  console.log(chalk.blue("Script args: ", myArgv._.join(' ')))
+  console.log(chalk.blue("Script args:", myArgv._.join(' ')))
   if (myArgv['--'] !== undefined) {
-    console.log(chalk.blue("Target args: ", myArgv['--'].join(' ')))
+    console.log(chalk.blue("Target args:", myArgv['--'].join(' ')))
   }
 
   // To avoid user not reload the ternimal after install tools,refresh the env
@@ -498,4 +518,8 @@ async function main() {
   context.save2File()
 }
 
-main()
+try {
+  await main()
+} catch (e) {
+  console.error(chalk.redBright(e))
+}
