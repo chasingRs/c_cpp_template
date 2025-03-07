@@ -12,9 +12,6 @@ on:
 permissions:
   contents: write
 # env:
-defaults:
-  run:
-    shell: pwsh -Command "try { . {0} } catch { exit 1 }"
 
 jobs:
   build:
