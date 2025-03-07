@@ -567,6 +567,7 @@ async function main() {
       case 'run':
         targetContext.target = context.projectContext.launchTarget
         targetContext.args = context.projectContext.launchArgs
+        context.stateMachine.currentState = State.Config
         if (myArgv._.length > 1) {
           console.log(chalk.greenBright('Runing target:', myArgv._[1]))
           targetContext.target = myArgv._.slice(1)
@@ -587,6 +588,7 @@ async function main() {
         break
       case 'test':
         targetContext.args = context.projectContext.testArgs
+        context.stateMachine.currentState = State.Config
         console.log(chalk.greenBright('Testing project...'))
         if (myArgv['--'] && myArgv['--'].length > 0) {
           console.log(chalk.greenBright('args:', myArgv['--'].join(' ')))
@@ -597,11 +599,13 @@ async function main() {
         context.stateMachine.currentState = State.Test
         break
       case 'install':
+        context.stateMachine.currentState = State.Config
         console.log(chalk.greenBright('Installing project...'))
         await excutor.install()
         context.stateMachine.currentState = State.Install
         break
       case 'pack':
+        context.stateMachine.currentState = State.Config
         console.log(chalk.greenBright('Packing project...'))
         await excutor.cpack()
         context.stateMachine.currentState = State.Pack
