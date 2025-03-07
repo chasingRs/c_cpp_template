@@ -161,12 +161,14 @@ function(c_cpp_template_package_project)
     [[libm\.so\..*]]
     [[libstdc\+\+\.so\..*]]
     POST_EXCLUDE_REGEXES
-    [[.*/System32/.*\.dll]]
-    [[.*/SysWOW64/.*\.dll]]
+    # see https://discourse.cmake.org/t/migration-experiences-comparison-runtime-dependency-set-vs-fixup-bundle-bundleutilities/11323/5
+    [[.*(\\|/)system32(\\|/).*.dll]]
+    [[.*(\\|/)syswow64(\\|/).*.dll]]
     # [[^/lib.*]]
     # [[^/usr/lib.*]]
     DIRECTORIES
-    ${CONAN_RUNTIME_LIB_DIRS})
+    ${CONAN_RUNTIME_LIB_DIRS}
+    $ENV{PATH}) # Mainly for windows msvc, some dlls are not in the runtime lib dirs, but in the PATH
   set(_targets_str "")
   foreach(_target ${_PackageProject_TARGETS})
     set(_targets_str "${_targets_str} ${_PackageProject_NAMESPACE}${_target}")

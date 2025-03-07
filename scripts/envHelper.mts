@@ -1,5 +1,6 @@
 import child_process from "child_process";
 import process from "process";
+import 'zx/globals'
 
 // Check cmd in env, return the cmd list that not found
 export function findCmdsInEnv(cmdList: string[]) {
@@ -10,9 +11,9 @@ export function findCmdsInEnv(cmdList: string[]) {
 }
 
 export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
-  let old_environment
-  let script_output
-  let new_environment
+  let old_environment: string[] = []
+  let script_output: string[] = []
+  let new_environment: string[] = []
   if (process.platform == "win32") {
     const cmd_output_string = child_process
       .execSync(`set && cls && ${cmd} && cls && set`, { shell: "cmd" })
@@ -103,6 +104,8 @@ function filterPathValue(path) {
   else if (process.platform == 'linux') {
     paths = path.split(":");
     return paths.filter(unique).join(":");
+  } else {
+    throw new Error("Unsupported platform");
   }
 }
 

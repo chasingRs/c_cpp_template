@@ -1,4 +1,3 @@
-import { throws } from 'assert'
 import { PathOrFileDescriptor } from 'fs'
 import { usePowerShell } from 'zx'
 import 'zx/globals'
@@ -139,7 +138,7 @@ class ProjectContext {
       }
   }
 
-  // NOTE: Change follow to set a default value for each config
+  // NOTE: Change following to set a default value for each config
   private setup = function (preset: CmakePresetContext) {
     try {
       const presets = jsonParse(preset.presetsFilePath)
