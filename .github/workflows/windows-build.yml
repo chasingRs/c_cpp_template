@@ -14,7 +14,8 @@ permissions:
 # env:
 defaults:
   run:
-    shell: powershell
+    shell: pwsh -Command "try { . {0} } catch { exit 1 }"
+
 jobs:
   build:
     runs-on: windows-2022

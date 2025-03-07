@@ -368,11 +368,11 @@ class Excutor {
         false,
         undefined
       );
-      const runCovCmd = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
+      const runCovCmd = `"cd out/coverage;OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     } else if (process.platform === 'linux') {
       const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
-      const runCovCmd = `gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`
+      const runCovCmd = `gcovr --delete --root . --print-summary --xml-pretty --xml out/coverage/coverage.xml . --gcov-executable gcov`
       await this.excutecheckExitCode(runTestCmd, 'Run test failed')
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     } else {
