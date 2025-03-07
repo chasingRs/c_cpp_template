@@ -249,7 +249,7 @@ class Excutor {
     if (this.context.stateMachine.currentState === State.Clean) {
       await this.clean()
     }
-    if (this.context.projectContext.cmakePreset.includes('msvc')) {
+    if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
         MSVCInstallDir,
@@ -263,11 +263,13 @@ class Excutor {
       const copyCompileCommandsCmd = `"if (Test-Path ${this.context.projectContext.sourceDir}/compile_commands.json) { Remove-Item ${this.context.projectContext.sourceDir}/compile_commands.json } New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
-    } else {
+    } else if (process.platform === 'linux') {
       const cmakeConfigreCmd = `cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}`.trim()
       const copyCompileCommandsCmd = `ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -277,7 +279,7 @@ class Excutor {
     }
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanbuild.${script_postfix}`)
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
-    if (this.context.projectContext.cmakePreset.includes('msvc')) {
+    if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
         MSVCInstallDir,
@@ -289,9 +291,11 @@ class Excutor {
       );
       const cmakeBuildCmd = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}"`.trim()
       await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const cmakeBuildCmd = `cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}`.trim()
       await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -305,12 +309,23 @@ class Excutor {
     this.context.projectContext.buildTarget = this.context.projectContext.launchTarget
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
+      setupMSVCDevCmd(
+        "x64",
+        MSVCInstallDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        undefined
+      );
       // WARN: Only run the first target
       const runTargetCmd = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]}.exe ${this.context.projectContext.launchArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const runTargetCmd = `${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]} ${this.context.projectContext.launchArgs.join(' ')}`.trim()
       await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
   runTest = async function () {
@@ -320,11 +335,22 @@ class Excutor {
     }
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
+      setupMSVCDevCmd(
+        "x64",
+        MSVCInstallDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        undefined
+      );
       const runTestCommand = `"ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runTestCommand, 'Run test failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
       await this.excutecheckExitCode(runTestCmd, 'Run test failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -334,13 +360,24 @@ class Excutor {
     }
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
+      setupMSVCDevCmd(
+        "x64",
+        MSVCInstallDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        undefined
+      );
       const runCovCmd = `"OpenCppCoverage.exe --working_dir ${this.context.projectContext.binaryDir} --export_type cobertura:coverage.xml --cover_children -- ctest ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const runTestCmd = `ctest --preset ${this.context.projectContext.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
       const runCovCmd = `gcovr --delete --root . --print-summary --xml-pretty --xml ${this.context.projectContext.binaryDir}/coverage.xml . --gcov-executable gcov`
       await this.excutecheckExitCode(runTestCmd, 'Run test failed')
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -349,11 +386,22 @@ class Excutor {
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
+      setupMSVCDevCmd(
+        "x64",
+        MSVCInstallDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        undefined
+      );
       const cpackCommand = `"cmake --install ${this.context.projectContext.binaryDir}"`
       await this.excutecheckExitCode(cpackCommand, 'Install failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const installCmd = `cmake --install ${this.context.projectContext.binaryDir}`
       await this.excutecheckExitCode(installCmd, 'Install failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -362,11 +410,22 @@ class Excutor {
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
+      setupMSVCDevCmd(
+        "x64",
+        MSVCInstallDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        undefined
+      );
       const cpackCommand = `"cd ${this.context.projectContext.binaryDir};cpack"`
       await this.excutecheckExitCode(cpackCommand, 'Pack failed')
-    } else {
+    } else if (process.platform === 'linux') {
       const cpackCmd = `cd ${this.context.projectContext.binaryDir} && cpack`
       await this.excutecheckExitCode(cpackCmd, 'Pack failed')
+    } else {
+      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
 }
