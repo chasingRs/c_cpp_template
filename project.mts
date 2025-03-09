@@ -239,6 +239,9 @@ class Excutor {
   }
 
   clean = async function () {
+    if (fs.existsSync("compile_commands.json")) {
+      await fs.unlink("compile_commands.json")
+    }
     if (fs.existsSync(this.context.projectContext.binaryDir)) {
       await fs.remove(this.context.projectContext.binaryDir)
     }
