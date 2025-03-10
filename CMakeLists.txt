@@ -76,7 +76,7 @@ if(c_cpp_template_BUILD_FUZZ_TESTS)
 
 endif()
 
-include("${CMAKE_CURRENT_LIST_DIR}/Utilities.cmake")
+include(cmake/Utilities.cmake)
 # If MSVC is being used, and ASAN is enabled, we need to set the debugger environment so that it
 # behaves well with MSVC's debugger, and we can run the target from visual studio
 if(MSVC)
