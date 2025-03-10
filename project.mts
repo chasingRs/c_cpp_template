@@ -169,7 +169,7 @@ class ProjectContext {
       enableSanitizerLeak: true,
       enableSanitizerUndefined: true,
       enableSanitizerThread: false,
-      enableSanitizerMemory: true,
+      enableSanitizerMemory: false,
       enableSanitizerAddress: true,
       enableUnityBuild: false,
       enablePch: false,
@@ -242,9 +242,7 @@ class Excutor {
     if (fs.existsSync("compile_commands.json")) {
       await fs.unlink("compile_commands.json")
     }
-    if (fs.existsSync(this.context.projectContext.binaryDir)) {
-      await fs.remove(this.context.projectContext.binaryDir)
-    }
+    await fs.remove("out")
   }
 
   cmakeConfigure = async function () {
@@ -360,6 +358,7 @@ class Excutor {
     if (this.context.stateMachine.currentState < State.Build) {
       await this.cmakeBuild()
     }
+    await fs.ensureDir('out/coverage')
     this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
     if (process.platform === 'win32') {
       setupMSVCDevCmd(
@@ -538,7 +537,7 @@ async function main() {
     }
     context.stateMachine.currentState = State.Cov
   } else {
-    if (context.cmakeOptionsContext.enableCoverage === false && context.stateMachine.currentState === State.Cov) {
+    if (context.cmakeOptionsContext.enableCoverage === false && context.stateMachine.currentState === State.Cov && myArgv._[0] != 'clean') {
       console.log(chalk.yellowBright('Last time run coverage with COVERAGE flag on temporarily, trying to reconfigure the project...'))
       // need to reconfigure the project
       context.stateMachine.currentState = State.Setup

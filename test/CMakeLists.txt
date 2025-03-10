@@ -36,7 +36,6 @@ target_link_libraries(
           c_cpp_template::c_cpp_template_warnings
           gtest::gtest
           c_cpp_template::sample_library)
-gtest_discover_tests(tests)
 
 add_executable(constexpr_tests constexpr_tests.cpp)
 target_link_libraries(
@@ -45,4 +44,10 @@ target_link_libraries(
           c_cpp_template::c_cpp_template_warnings
           gtest::gtest
           c_cpp_template::sample_library)
-gtest_discover_tests(constexpr_tests)
+
+if(NOT CMAKE_CROSSCOMPILING)
+  # Only when not cross-compiling, we can use gtest_discover_tests
+  # to automatically discover and register tests to ctest.
+  gtest_discover_tests(tests)
+  gtest_discover_tests(constexpr_tests)
+endif()
