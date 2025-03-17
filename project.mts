@@ -569,7 +569,10 @@ async function main() {
       case 'run':
         targetContext.target = context.projectContext.launchTarget
         targetContext.args = context.projectContext.launchArgs
-        context.stateMachine.currentState = State.Config
+        if (context.stateMachine.currentState > State.Config) {
+          // Force to rebuild the target as some files may be changed
+          context.stateMachine.currentState = State.Config
+        }
         if (myArgv._.length > 1) {
           console.log(chalk.greenBright('Runing target:', myArgv._[1]))
           targetContext.target = myArgv._.slice(1)
