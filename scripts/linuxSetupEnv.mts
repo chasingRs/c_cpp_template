@@ -1,5 +1,6 @@
 import 'zx/globals';
-import { findCmdsInEnv, refreshEnv } from './envHelper.mts';
+import { refreshEnv } from './envHelper.mts';
+import { findCmdsInEnv } from './utils.mts';
 
 if (process.platform !== 'linux') {
   console.error("This script is for Linux only,run 'windowsSetupEnv.mts' instead")

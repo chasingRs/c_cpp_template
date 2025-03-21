@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "tsx project.mts build intro",
+      "args": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "build target"
+    },
+    {
+      "label": "run",
+      "type": "shell",
+      "command": "tsx project.mts run intro",
+      "args": [],
+      "group": {
+        "kind": "run",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "run target"
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "tsx project.mts test",
+      "args": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "running tests"
+    },
+    {
+      "label": "clean",
+      "type": "shell",
+      "command": "tsx project.mts clean",
+      "args": [],
+      "group": {
+        "kind": "clean",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "clean project"
+    }
+  ]
+}

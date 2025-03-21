@@ -2,7 +2,8 @@ import { exec } from 'child_process';
 import { usePowerShell } from 'zx';
 import 'zx/globals';
 import { MSVCInstallDir } from './consts.mjs';
-import { findCmdsInEnv, refreshEnv } from './envHelper.mjs'
+import { refreshEnv } from './envHelper.mjs'
+import { findCmdsInEnv } from './utils.mjs'
 
 if (process.platform !== 'win32') {
   console.error(chalk.red("This script is for Windows only,run 'linuxSetupEnv.mts' instead"))

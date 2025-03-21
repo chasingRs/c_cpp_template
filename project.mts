@@ -2,8 +2,9 @@ import { PathOrFileDescriptor } from 'fs'
 import { usePowerShell } from 'zx'
 import 'zx/globals'
 import { MSVCInstallDir } from './scripts/consts.mjs'
-import { findCmdsInEnv, refreshEnv } from './scripts/envHelper.mts'
+import { refreshEnv, getEnvDiff, saveEnvToFile } from './scripts/envHelper.mts'
 import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
+import { findCmdsInEnv, loadFromJson, saveToJson } from './scripts/utils.mts'
 
 const cachePath = '.project_cache.json'
 const presetsFilePath = 'CMakePresets.json'
@@ -18,11 +19,6 @@ if (process.platform === 'win32') {
 
 if (process.platform === 'linux') {
   script_postfix = 'sh'
-}
-
-function jsonParse(json: PathOrFileDescriptor) {
-  let content = fs.readFileSync(json, 'utf8')
-  return JSON.parse(content)
 }
 
 interface CmakeOptionsContext {
@@ -129,7 +125,7 @@ class ProjectContext {
     }
     else
       try {
-        const parsedCache = jsonParse(this.cachePath)
+        const parsedCache = loadFromJson(this.cachePath)
         this.projectContext = parsedCache.projectContext
         this.cmakeOptionsContext = parsedCache.cmakeOptionsContext
         this.stateMachine = parsedCache.stateMachine
@@ -141,7 +137,7 @@ class ProjectContext {
   // NOTE: Change following to set a default value for each config
   private setup = function (preset: CmakePresetContext) {
     try {
-      const presets = jsonParse(preset.presetsFilePath)
+      const presets = loadFromJson(preset.presetsFilePath)
       // these variables is used by 'eval' command bellow
       const sourceDir = process.cwd()
       const presetName = preset.selectedPreset
@@ -188,11 +184,11 @@ class ProjectContext {
   }
 
   save2File = function () {
-    fs.writeFileSync(this.cachePath, JSON.stringify({
+    saveToJson(this.cachePath, {
       projectContext: this.projectContext,
       cmakeOptionsContext: this.cmakeOptionsContext,
       stateMachine: this.stateMachine
-    }, null, 2))
+    })
   }
 }
 
@@ -271,6 +267,9 @@ class Excutor {
     } else {
       throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
+    // export env to .vscode/launch.json
+    const envList = getEnvDiff(`source ${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
+    saveEnvToFile('.vscode/launch.json', envList, ['configurations', 0, 'env'])
   }
 
   cmakeBuild = async function () {

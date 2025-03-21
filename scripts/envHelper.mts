@@ -1,16 +1,29 @@
 import child_process from "child_process";
 import process from "process";
 import 'zx/globals'
-
-// Check cmd in env, return the cmd list that not found
-export function findCmdsInEnv(cmdList: string[]) {
-  let not_found_cmds = cmdList.filter((cmd) => {
-    return which.sync(cmd, { nothrow: true }) === null
-  })
-  return not_found_cmds
-}
+import { loadFromJson, saveToJson } from "./utils.mts";
 
 export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
+  const envList = getEnvDiff(cmd, error_message_pattern)
+  for (const [name, value] of envList) {
+    process.env[name] = value
+  }
+}
+
+// Save environment variables to json file with specific path
+export function saveEnvToFile(filePath: string, envList: Map<string, string>, pathFromRoot) {
+  let object = loadFromJson(filePath)
+  let current = object;
+  for (let i = 0; i < pathFromRoot.length - 1; i++) {
+    current[pathFromRoot[i]] = current[pathFromRoot[i]] || {};
+    current = current[pathFromRoot[i]];
+  }
+  current[pathFromRoot[pathFromRoot.length - 1]] = Object.fromEntries(envList);
+  saveToJson(filePath, object)
+}
+
+// Run a command in a shell and return the environment variables been changed
+export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<string, string> {
   let old_environment: string[] = []
   let script_output: string[] = []
   let new_environment: string[] = []
@@ -67,6 +80,7 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   // Now look at the new environment and export everything that changed.
   // These are the variables set by vsvars.bat. Also export everything
   // that was not there during the first sweep: those are new variables.
+  let envList = new Map<string, string>();
   for (let string of new_environment) {
     // vsvars.bat likes to print some fluff at the beginning.
     // Skip lines that don't look like environment variables.
@@ -84,10 +98,11 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
       if (isPathVariable(name)) {
         new_value = filterPathValue(new_value);
       }
-      // console.log(chalk.hex('#2EA51D')(`export ${name}=${new_value}`));
-      process.env[name] = new_value;
+      envList.set(name, new_value)
+      // envList[name] = new_value;
     }
   }
+  return envList;
 }
 
 function filterPathValue(path) {
