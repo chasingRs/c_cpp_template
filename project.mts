@@ -2,23 +2,26 @@ import { PathOrFileDescriptor } from 'fs'
 import { usePowerShell } from 'zx'
 import 'zx/globals'
 import { MSVCInstallDir } from './scripts/consts.mjs'
-import { refreshEnv, getEnvDiff, saveEnvToFile } from './scripts/envHelper.mts'
+import { refreshEnv, getEnvDiff } from './scripts/envHelper.mts'
 import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
-import { findCmdsInEnv, loadFromJson, saveToJson } from './scripts/utils.mts'
+import { findCmdsInEnv, loadFromJson, saveToJson, replaceJsonNode } from './scripts/utils.mts'
 
 const cachePath = '.project_cache.json'
 const presetsFilePath = 'CMakePresets.json'
-let script_postfix = ''
+let scriptPostfix = ''
+let sourceCommandPrefix = ''
 
 const $$ = $({ stdio: 'inherit' })
 
 if (process.platform === 'win32') {
   usePowerShell()
-  script_postfix = 'bat'
+  scriptPostfix = 'bat'
+  sourceCommandPrefix = ""
 }
 
 if (process.platform === 'linux') {
-  script_postfix = 'sh'
+  scriptPostfix = 'sh'
+  sourceCommandPrefix = "source " // Attention: space after source
 }
 
 interface CmakeOptionsContext {
@@ -199,15 +202,6 @@ class Excutor {
     this.context = context
   }
 
-  private refreshEnvFromScript = function (script: string) {
-    if (process.platform === 'win32') {
-      refreshEnv(script)
-    }
-    else if (process.platform === 'linux') {
-      refreshEnv(`source ${script}`)
-    }
-  }
-
   private camelToSnake = function (str: string) {
     return str.replace(/[A-Z]/g, letter => `_${letter}`)
   }
@@ -267,17 +261,14 @@ class Excutor {
     } else {
       throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
-    // export env to .vscode/launch.json
-    const envList = getEnvDiff(`source ${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
-    saveEnvToFile('.vscode/launch.json', envList, ['configurations', 0, 'env'])
   }
 
   cmakeBuild = async function () {
     if (this.context.stateMachine.currentState < State.Config) {
       await this.cmakeConfigure()
     }
-    this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanbuild.${script_postfix}`)
-    this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
+    refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanbuild.${scriptPostfix}`)
+    refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
@@ -299,6 +290,7 @@ class Excutor {
   }
 
   runTarget = async function () {
+    // TODO: Clean this
     if (this.context.cmakeOptionsContext.enableCoverage === true) {
       // Need to reconfigure the project
     }
@@ -306,7 +298,7 @@ class Excutor {
       await this.cmakeBuild()
     }
     this.context.projectContext.buildTarget = this.context.projectContext.launchTarget
-    this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
+    refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
@@ -332,7 +324,7 @@ class Excutor {
       this.context.projectContext.buildTarget = ['all']
       await this.cmakeBuild()
     }
-    this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
+    refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
@@ -358,7 +350,7 @@ class Excutor {
       await this.cmakeBuild()
     }
     await fs.ensureDir('out/coverage')
-    this.refreshEnvFromScript(`${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${script_postfix}`)
+    refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
       setupMSVCDevCmd(
         "x64",
@@ -517,14 +509,26 @@ async function main() {
 
   const context = new ProjectContext()
   const excutor = new Excutor(context)
+  let argsReuse = false
 
+  if (myArgv._[0].endsWith('!')) {
+    // Reuse last args
+    argsReuse = true
+    myArgv._[0] = myArgv._[0].substring(0, myArgv._[0].length - 1)
+  }
+
+  // To auto rebuild the project when the coverage is disabled,
+  // handle 'cov' command specially
   if (myArgv._[0] == 'cov') {
-    targetContext.args = context.projectContext.testArgs
-    console.log(chalk.greenBright('Getting Coverage of this project...'))
-    if (myArgv['--'] && myArgv['--'].length > 0) {
+    console.log(chalk.greenBright('Running Coverage of this project...'))
+    // Handle args
+    if (argsReuse) {
+      targetContext.args = context.projectContext.testArgs
+    } else if (myArgv['--'] && myArgv['--'].length > 0) {
       targetContext.args = myArgv['--']
-      context.setTargetContext(TargetType.Test, targetContext)
     }
+    context.setTargetContext(TargetType.Test, targetContext)
+
     if (context.cmakeOptionsContext.enableCoverage === false && context.stateMachine.currentState !== State.Cov) {
       console.log(chalk.yellowBright('Coverage is not enabled, trying to enable it and build again...'))
       context.cmakeOptionsContext.enableCoverage = true
@@ -537,7 +541,7 @@ async function main() {
     context.stateMachine.currentState = State.Cov
   } else {
     if (context.cmakeOptionsContext.enableCoverage === false && context.stateMachine.currentState === State.Cov && myArgv._[0] != 'clean') {
-      console.log(chalk.yellowBright('Last time run coverage with COVERAGE flag on temporarily, trying to reconfigure the project...'))
+      console.log(chalk.yellowBright('Last time run cmake configure with COVERAGE flag ON temporarily, disable it and reconfigure the project...'))
       // need to reconfigure the project
       context.stateMachine.currentState = State.Setup
     }
@@ -551,6 +555,9 @@ async function main() {
         console.log(chalk.greenBright('Configuring project...'))
         await excutor.cmakeConfigure()
         context.stateMachine.currentState = State.Config
+        // export env to .vscode/launch.json
+        const envList = getEnvDiff(`${sourceCommandPrefix}${context.projectContext.binaryDir}/conan/build/${context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
+        replaceJsonNode('.vscode/launch.json', "configurations", ["type", "lldb"], "env", Object.fromEntries(envList))
         break
       case 'build':
         targetContext.target = context.projectContext.buildTarget
@@ -567,7 +574,9 @@ async function main() {
         break
       case 'run':
         targetContext.target = context.projectContext.launchTarget
-        targetContext.args = context.projectContext.launchArgs
+        if (argsReuse) {
+          targetContext.args = context.projectContext.launchArgs
+        }
         if (context.stateMachine.currentState > State.Config) {
           // Force to rebuild the target as some files may be changed
           context.stateMachine.currentState = State.Config
@@ -589,9 +598,14 @@ async function main() {
         context.setTargetContext(TargetType.Launch, targetContext)
         await excutor.runTarget()
         context.stateMachine.currentState = State.Run
+        // export args to .vscode/launch.json and .vscode/tasks.json
+        replaceJsonNode('.vscode/launch.json', "configurations", ["type", "lldb"], "program", `${context.projectContext.binaryDir}/bin/${targetContext.target}`)
+        replaceJsonNode('.vscode/launch.json', "configurations", ["type", "lldb"], "args", targetContext.args)
         break
       case 'test':
-        targetContext.args = context.projectContext.testArgs
+        if (argsReuse) {
+          targetContext.args = context.projectContext.testArgs
+        }
         context.stateMachine.currentState = State.Config
         console.log(chalk.greenBright('Testing project...'))
         if (myArgv['--'] && myArgv['--'].length > 0) {
@@ -601,6 +615,7 @@ async function main() {
         }
         await excutor.runTest()
         context.stateMachine.currentState = State.Test
+        replaceJsonNode('.vscode/tasks.json', "tasks", ["group.kind", "test"], "args", targetContext.args)
         break
       case 'install':
         context.stateMachine.currentState = State.Config

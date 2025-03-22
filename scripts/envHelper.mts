@@ -1,7 +1,7 @@
 import child_process from "child_process";
 import process from "process";
 import 'zx/globals'
-import { loadFromJson, saveToJson } from "./utils.mts";
+import { loadFromJson, saveToJson, replaceObjectNode } from "./utils.mts";
 
 export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   const envList = getEnvDiff(cmd, error_message_pattern)
@@ -10,17 +10,6 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   }
 }
 
-// Save environment variables to json file with specific path
-export function saveEnvToFile(filePath: string, envList: Map<string, string>, pathFromRoot) {
-  let object = loadFromJson(filePath)
-  let current = object;
-  for (let i = 0; i < pathFromRoot.length - 1; i++) {
-    current[pathFromRoot[i]] = current[pathFromRoot[i]] || {};
-    current = current[pathFromRoot[i]];
-  }
-  current[pathFromRoot[pathFromRoot.length - 1]] = Object.fromEntries(envList);
-  saveToJson(filePath, object)
-}
 
 // Run a command in a shell and return the environment variables been changed
 export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<string, string> {
@@ -99,7 +88,6 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
         new_value = filterPathValue(new_value);
       }
       envList.set(name, new_value)
-      // envList[name] = new_value;
     }
   }
   return envList;
