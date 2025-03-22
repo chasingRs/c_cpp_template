@@ -16,9 +16,6 @@ permissions:
 jobs:
   build:
     runs-on: windows-2022
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -44,31 +41,38 @@ jobs:
           cmake_preset: ${{ matrix.cmake_preset }}
 
       - name: Setup Tools
+        shell: bash
         working-directory: ./scripts
         run: |
           ./setup.bat
 
       - name: Project setup
+        shell: bash
         run: |
           tsx project.mts setup ${{matrix.cmake_preset}}
 
       - name: Cmake configure
+        shell: bash
         run: |
           tsx project.mts config
 
       - name: Cmake build
+        shell: bash
         run: |
           tsx project.mts build
 
       - name: Cmake test
+        shell: bash
         run: |
           tsx project.mts test
 
       - name: Coverage
+        shell: bash
         run: |
           tsx project.mts cov
 
       - name: Cmake pack
+        shell: bash
         run: |
           tsx project.mts pack
 
