@@ -31,7 +31,8 @@ set(CMAKE_INSTALL_RPATH $ORIGIN:$ORIGIN/../lib)
 # but the program complains they are not found as these shared library relay on other shared library
 # see https://segmentfault.com/a/1190000044513658 , rpath vs runpath
 # TODO: Dont't know if this is the best way to do it
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_SYSTEM_NAME STREQUAL
+                                                                                        "Linux")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 endif()

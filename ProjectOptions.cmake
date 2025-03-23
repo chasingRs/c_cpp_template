@@ -177,8 +177,7 @@ macro(c_cpp_template_local_options)
   endif()
 
   if(c_cpp_template_ENABLE_CPPCHECK)
-    c_cpp_template_enable_cppcheck(${c_cpp_template_WARNINGS_AS_ERRORS} "" # override cppcheck options
-    )
+    c_cpp_template_enable_cppcheck(${c_cpp_template_WARNINGS_AS_ERRORS} "") # override cppcheck options
   endif()
 
   if(c_cpp_template_ENABLE_COVERAGE)

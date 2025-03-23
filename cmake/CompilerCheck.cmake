@@ -1,3 +1,5 @@
+# TODO: Check MSVC /fsanitize-coverage support
+
 function(c_cpp_template_check_libfuzzer_support var_name)
   set(LibFuzzerTestSource
       "

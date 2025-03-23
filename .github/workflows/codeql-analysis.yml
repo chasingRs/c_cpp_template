@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["cpp"]
+        language: ["c-cpp"]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://git.io/codeql-language-support
         compiler:
@@ -64,7 +64,7 @@ jobs:
 
       - name: Project setup
         run: |
-          tsx project.mts setup ${{matrix.cmake_preset}}
+          tsx project.mts setup ${{matrix.cmake_preset}} --enableSanitizerAddress=OFF
 
       - name: Cmake configure
         run: |
