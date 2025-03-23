@@ -643,4 +643,5 @@ try {
   await main()
 } catch (e) {
   console.error(chalk.redBright(e))
+  process.exit(1)
 }
