@@ -142,12 +142,14 @@ class ProjectContext {
     try {
       const presets = loadFromJson(preset.presetsFilePath)
       // these variables is used by 'eval' command bellow
-      const sourceDir = process.cwd()
+      // NOTE: To Change sourceDir from absolute to relative
+      // const sourceDir = process.cwd()
+      const sourceDir = "."
       const presetName = preset.selectedPreset
       const env = dotenv.parse(fs.readFileSync('./.github/constants.env'))
       this.projectContext = {
         cmakePreset: preset.selectedPreset,
-        sourceDir: process.cwd(),
+        sourceDir: sourceDir,
         buildTarget: ['all'],
         launchTarget: [],
         launchArgs: [],
@@ -250,14 +252,14 @@ class Excutor {
         undefined
       );
       const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`.trim()
-      const copyCompileCommandsCmd = `"if (Test-Path ${this.context.projectContext.sourceDir}/compile_commands.json) { Remove-Item ${this.context.projectContext.sourceDir}/compile_commands.json } New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
+      const symlinkCompileCommandsCmd = `"if (Test-Path ${this.context.projectContext.sourceDir}/compile_commands.json) { Remove-Item ${this.context.projectContext.sourceDir}/compile_commands.json } New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
-      await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
+      await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else if (process.platform === 'linux') {
       const cmakeConfigreCmd = `cmake -S . --preset=${this.context.projectContext.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}`.trim()
-      const copyCompileCommandsCmd = `ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json`
+      const symlinkCompileCommandsCmd = `ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
-      await this.excutecheckExitCode(copyCompileCommandsCmd, 'Unable to create compile_commands.json')
+      await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else {
       throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
@@ -290,10 +292,6 @@ class Excutor {
   }
 
   runTarget = async function () {
-    // TODO: Clean this
-    if (this.context.cmakeOptionsContext.enableCoverage === true) {
-      // Need to reconfigure the project
-    }
     if (this.context.stateMachine.currentState < State.Build) {
       await this.cmakeBuild()
     }
@@ -447,6 +445,8 @@ function showHelp() {
   console.log(chalk.green(' Run the target'))
   console.log(chalk.green(' tsx project.mts run [target_name]                   ---run the target [target]'))
   console.log(chalk.green(' tsx project.mts run [target_name] [-- target_args]  ---run the target [target_name] with target_args'))
+  console.log(chalk.green(' tsx project.mts run                                 ---rerun last specified target'))
+  console.log(chalk.green(' tsx project.mts run!                                ---rerun last specified target with last args'))
   console.log("\n")
   console.log(chalk.green(' Test the project'))
   console.log(chalk.green(' tsx project.mts test                                ---run all tests'))
@@ -455,8 +455,9 @@ function showHelp() {
   console.log(chalk.green(' Pack the project'))
   console.log(chalk.green(' tsx project.mts pack                                ---pack the project'))
   console.log("\n")
-  console.log(chalk.hex('0xa9cc00')('Usage: tsx project.mts <action> [target] [-- args]'))
+  console.log(chalk.hex('0xa9cc00')('Usage: tsx project.mts <action>[!] [target] [-- args]'))
   console.log(chalk.hex('0xa9cc00')('action: config | clean | build | run | test | install | pack'))
+  console.log(chalk.hex('0xa9cc00')('[!] : reuse last args'))
   console.log(chalk.hex('0xa9cc00')('target: the target to execute the action'))
   console.log(chalk.hex('0xa9cc00')('args: the arguments to pass to the target'))
 }
