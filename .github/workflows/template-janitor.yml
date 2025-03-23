@@ -18,6 +18,9 @@ jobs:
   template-cleanup:
     name: Cleanup after create
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         compiler:
