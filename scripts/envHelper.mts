@@ -1,7 +1,6 @@
 import child_process from "child_process";
 import process from "process";
 import 'zx/globals'
-import { loadFromJson, saveToJson, replaceObjectNode } from "./utils.mts";
 
 export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   const envList = getEnvDiff(cmd, error_message_pattern)
@@ -10,7 +9,6 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   }
 }
 
-
 // Run a command in a shell and return the environment variables been changed
 export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<string, string> {
   let old_environment: string[] = []
@@ -18,7 +16,7 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
   let new_environment: string[] = []
   if (process.platform == "win32") {
     const cmd_output_string = child_process
-      .execSync(`set && cls && ${cmd} && cls && set`, { shell: "cmd" })
+      .execSync(`Get-ChildItem Env: | ForEach-Object {"$($_.Name)=$($_.Value)"} ; cls ; ${cmd} ; cls ; Get-ChildItem Env: | ForEach-Object {"$($_.Name)=$($_.Value)"}`, { shell: "powershell" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f");
     old_environment = cmd_output_parts[0].split("\r\n");
@@ -93,8 +91,8 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
   return envList;
 }
 
-function filterPathValue(path) {
-  function unique(value, index, self) {
+function filterPathValue(path: string) {
+  function unique(value: string, index: number, self: string[]) {
     return self.indexOf(value) === index;
   }
   let paths: string[] = [];
@@ -112,7 +110,7 @@ function filterPathValue(path) {
   }
 }
 
-function isPathVariable(name) {
+function isPathVariable(name: string) {
   // TODO: Add more variables to the list.
   const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
   return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
