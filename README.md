@@ -5,9 +5,9 @@
 [![codecov](https://codecov.io/gh/PongKJ/c_cpp_template/branch/main/graph/badge.svg)](https://codecov.io/gh/PongKJ/c_cpp_template)
 [![CodeQL](https://github.com/PongKJ/c_cpp_template/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/codeql-analysis.yml)
 
-## About cmake_template
+## About c_cpp_template
 
-This is a C++ Best Practices GitHub template for getting up and running with C++ quickly.
+> Note: This Project is a fork of [cpp-best-practices/cmake_template](https://github.com/cpp-best-practices/cmake_template)
 
 By default (collectively known as `ENABLE_DEVELOPER_MODE`)
 
