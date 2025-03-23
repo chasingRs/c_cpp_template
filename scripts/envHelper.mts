@@ -16,7 +16,7 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
   let new_environment: string[] = []
   if (process.platform == "win32") {
     const cmd_output_string = child_process
-      .execSync(`Get-ChildItem Env: | ForEach-Object {"$($_.Name)=$($_.Value)"} ; cls ; ${cmd} ; cls ; Get-ChildItem Env: | ForEach-Object {"$($_.Name)=$($_.Value)"}`, { shell: "powershell" })
+   .execSync(`set && cls && ${cmd} && cls && set`.replaceAll("/","\\"), { shell: "cmd" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f");
     old_environment = cmd_output_parts[0].split("\r\n");
