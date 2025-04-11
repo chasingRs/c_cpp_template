@@ -470,7 +470,12 @@ async function main() {
       refreshEnv('refreshenv')
     }
     else if (process.platform === 'linux') {
-      refreshEnv('source ~/.profile')
+      try {
+        refreshEnv('source ~/.profile')
+      } catch (e) {
+        console.log(chalk.redBright('~/.profile not found,trying ~/.bashrc'))
+        refreshEnv('source ~/.bashrc')
+      }
     }
   }
 
