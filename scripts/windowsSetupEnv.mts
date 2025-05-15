@@ -82,7 +82,7 @@ class PackageManager {
     // See https://google.github.io/zx/quotes
     const vsBuildToolsArgs = [
       '--package-parameters',
-      `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\\buildTools --path shared=${MSVCInstallDir}\\shared --path cache=${MSVCInstallDir}\\cache"`
+      `\"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\"`
     ];
 
     // TODO: Check MSVC installation to decide whether to install or not
