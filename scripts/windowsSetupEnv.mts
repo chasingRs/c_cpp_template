@@ -54,6 +54,49 @@ tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
   }
 }
 
+class MSVCToolchainManager {
+  private readonly customInstallDir: string;
+  private readonly vsInstallerPath: string = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
+
+  constructor(installDir: string) {
+    this.customInstallDir = installDir;
+  }
+
+  async removePreinstalledToolchain() {
+    try {
+      // 检测已安装的 MSVC 组件
+      const instances = JSON.parse($`"${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vswhere.exe" -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`.toString());
+
+      if (instances.length > 0) {
+        console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
+        await $`"${this.vsInstallerPath}" modify --installPath "${instances[0].installationPath}" --remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --norestart`;
+        console.log(chalk.green('Preinstalled MSVC toolchain removed successfully'));
+      }
+    } catch (error) {
+      console.log(chalk.yellow('No preinstalled MSVC toolchain found or removal failed:'), error.message);
+    }
+  }
+
+  async installCustomToolchain() {
+    try {
+      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir}`));
+
+      const args = [
+        '--package-parameters',
+        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
+      ];
+
+      await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
+      refreshEnv('refreshenv');
+
+      console.log(chalk.green('MSVC toolchain installed successfully'));
+    } catch (error) {
+      console.error(chalk.red('MSVC toolchain installation failed:'), error);
+      throw error;
+    }
+  }
+}
+
 class PackageManager {
   private packageManager: string = '';
 
@@ -87,9 +130,6 @@ class PackageManager {
     //
     // // TODO: Check MSVC installation to decide whether to install or not
     // await this.chocoInstall(['visualstudio2022buildtools'], vsBuildToolsArgs);
-
-    const chocoInstallCommand = `choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
-    await $`cmd /C ${chocoInstallCommand}`.pipe(process.stderr)
   }
 
   private async chocoInstall(packages: string[], additionalArgs: string[] = []) {
@@ -107,6 +147,10 @@ async function main() {
   try {
     const configModifier = new ConfigModifier();
     const packageManager = new PackageManager();
+
+    const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
+    await toolchainManager.removePreinstalledToolchain();
+    await toolchainManager.installCustomToolchain();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();
