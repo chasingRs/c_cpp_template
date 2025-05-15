@@ -1,9 +1,10 @@
 import 'zx/globals';
 import { refreshEnv } from './envHelper.mts';
-import { findCmdsInEnv } from './utils.mts';
+import { checkCmds } from './utils.mts';
+import { linuxPkgsToInstall } from './consts.mts';
 
 if (process.platform !== 'linux') {
-  console.error("This script is for Linux only,run 'windowsSetupEnv.mts' instead")
+  console.error("This script is for Linux only, run 'windowsSetupEnv.mts' instead")
   process.exit(1)
 }
 
@@ -12,13 +13,13 @@ class ConfigModifier {
   constructor() {
     this.paltform = process.platform
   }
-  preInstallMod = async function () {
+  async preInstallHook() {
     // TODO: Change some configs before installing packages
   }
-  postInstallMod = async function () {
+  async postInstallHook() {
     await this.modConan()
   }
-  private modConan = async function () {
+  private async modConan() {
     const conanHome = `${os.homedir()}/.conan2`
     await $`conan profile detect --force`.pipe(process.stderr)
     const content = fs.readFileSync(`${conanHome}/global.conf`, 'utf8')
@@ -53,20 +54,20 @@ class PackageManager {
   constructor() {
     this.packageManager = ''
   }
-  installToolchain = async function () {
+  async installToolchain() {
     switch (this.packageManager) {
       case 'apt':
-        await this._aptInstallPackage(['build-essential', 'cmake', 'ninja-build', 'ccache', 'cppcheck', 'gcovr', 'zlib1g-dev', 'libffi-dev', 'libssl-dev', 'libbz2-dev', 'libreadline-dev', 'libsqlite3-dev',
-          'liblzma-dev', 'libncurses-dev', 'tk-dev'])
+        await this.aptInstallPackage(linuxPkgsToInstall['apt'])
         break
+      // TODO: Need to add package names for other package managers below
       case 'pacman':
-        await this._pacmanInstallPackage(['base-devel', 'cmake'])
+        await this.pacmanInstallPackage(linuxPkgsToInstall['pacman'])
         break
       case 'yum':
-        await this._yumInstallPackage(['gcc-c++', 'cmake'])
+        await this.yumInstallPackage(linuxPkgsToInstall['yum'])
         break
       case 'brew':
-        await this._brewInstallPackage(['gcc', 'g++', 'cmake'])
+        await this.brewInstallPackage(linuxPkgsToInstall['brew'])
         break
       default:
         console.error("Unknown package manager")
@@ -74,8 +75,8 @@ class PackageManager {
     }
   }
 
-  installConfigPy = async function () {
-    if (findCmdsInEnv(['pyenv']).length == 0 || fs.existsSync(`${os.homedir()}/.pyenv`)) {
+  async installConfigPy() {
+    if (checkCmds(['pyenv']).length == 0 || fs.existsSync(`${os.homedir()}/.pyenv`)) {
       console.log("pyenv already installed,installing python...")
     }
     else {
@@ -87,21 +88,21 @@ class PackageManager {
     refreshEnv('source ~/.profile') //refresh environment, update PATH,etc
     await $`pyenv install -s 3.10.5 && 
             pyenv global 3.10.5`.pipe(process.stderr)
-    if (findCmdsInEnv(['pip']).length > 0) {
+    if (checkCmds(['pip']).length > 0) {
       await $`python -m ensurepip --upgrade`.pipe(process.stderr)
     }
   }
 
-  installConan = async function () {
-    if (findCmdsInEnv(['conan']).length == 0) {
+  async installConan() {
+    if (checkCmds(['conan']).length == 0) {
       console.log(chalk.greenBright("Conan already installed"))
     } else {
       console.log(chalk.blueBright("Installing Conan..."))
-      await this._pipInstallPackage(['conan'])
+      await this.pipInstallPackage(['conan'])
     }
   }
 
-  detectSystemPackageManager = async function () {
+  async detectSystemPackageManager() {
     if (process.platform === 'win32') {
       this.packageManager = 'choco'
     } else if (process.platform === 'linux') {
@@ -130,31 +131,31 @@ class PackageManager {
     }
   }
 
-  _aptInstallPackage = async function (packageList: string[]) {
+  private async aptInstallPackage(packageList: string[]) {
     await $`sudo apt-get update`.pipe(process.stderr)
     for (const pkg of packageList) {
       await $`sudo apt-get -y install ${pkg}`.pipe(process.stderr)
     }
   }
-  _pacmanInstallPackage = async function (packageList: string[]) {
+  private async pacmanInstallPackage(packageList: string[]) {
     await $`sudo pacman -Syyu`.pipe(process.stderr)
     for (const pkg of packageList) {
       await $`sudo pacman -S ${pkg}`.pipe(process.stderr)
     }
   }
-  _yumInstallPackage = async function (packageList: string[]) {
+  private async yumInstallPackage(packageList: string[]) {
     await $`sudo yum update`.pipe(process.stderr)
     for (const pkg of packageList) {
       await $`sudo yum install -y ${pkg}`.pipe(process.stderr)
     }
   }
-  _brewInstallPackage = async function (packageList: string[]) {
+  private async brewInstallPackage(packageList: string[]) {
     await $`brew update`.pipe(process.stderr)
     for (const pkg of packageList) {
       await $`brew install ${pkg}`.pipe(process.stderr)
     }
   }
-  _pipInstallPackage = async function (packageList: string[]) {
+  private async pipInstallPackage(packageList: string[]) {
     for (const pkg of packageList) {
       await $`pip install ${pkg}`.pipe(process.stderr)
     }
@@ -163,14 +164,14 @@ class PackageManager {
 
 async function main() {
   const configModifier = new ConfigModifier()
-  configModifier.preInstallMod()
   const packageManager = new PackageManager()
   await packageManager.detectSystemPackageManager()
   console.log(chalk.blue(`Detected package manager: ${packageManager.packageManager}`))
+  configModifier.preInstallHook()
   await packageManager.installToolchain()
   await packageManager.installConfigPy()
   await packageManager.installConan()
-  await configModifier.postInstallMod()
+  await configModifier.postInstallHook()
 }
 
-main()
+await main()

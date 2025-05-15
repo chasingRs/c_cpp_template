@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# From https://fnm.vercel.app/install ,some modifications are made to the script
+# From https://fnm.vercel.app/install , with some little modifications
 set -e
 
 RELEASE="latest"

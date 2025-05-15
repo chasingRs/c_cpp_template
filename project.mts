@@ -4,9 +4,9 @@ import 'zx/globals'
 import { MSVCInstallDir } from './scripts/consts.mjs'
 import { refreshEnv, getEnvDiff } from './scripts/envHelper.mts'
 import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
-import { findCmdsInEnv, loadFromJson, saveToJson, replaceJsonNode } from './scripts/utils.mts'
+import { checkCmds, loadFromJson, saveToJson, replaceJsonNode } from './scripts/utils.mts'
 
-// Do Not show callstack on error
+// Do Not show call backtrace on error
 const NoCallstackOnError = false
 
 const cachePath = '.project_cache.json'
@@ -215,14 +215,14 @@ class Excutor {
     }
   }
 
-  clean = async function () {
+  async clean() {
     if (fs.existsSync("compile_commands.json")) {
       await fs.unlink("compile_commands.json")
     }
     await fs.remove("out")
   }
 
-  cmakeConfigure = async function () {
+  async cmakeConfigure() {
     if (this.context.stateMachine.currentState === State.Clean) {
       await this.clean()
     }
@@ -250,7 +250,7 @@ class Excutor {
     }
   }
 
-  cmakeBuild = async function () {
+  async cmakeBuild() {
     if (this.context.stateMachine.currentState < State.Config) {
       await this.cmakeConfigure()
     }
@@ -276,7 +276,7 @@ class Excutor {
     }
   }
 
-  runTarget = async function () {
+  async runTarget() {
     this.context.projectContext.buildTarget = this.context.projectContext.launchTarget
     if (this.context.stateMachine.currentState < State.Build) {
       await this.cmakeBuild()
@@ -302,7 +302,7 @@ class Excutor {
       throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
     }
   }
-  runTest = async function () {
+  async runTest() {
     if (this.context.stateMachine.currentState < State.Build || this.context.projectContext.buildTarget[0] != 'all') {
       this.context.projectContext.buildTarget = ['all']
       await this.cmakeBuild()
@@ -328,7 +328,7 @@ class Excutor {
     }
   }
 
-  runCov = async function () {
+  async runCov() {
     if (this.context.stateMachine.currentState < State.Build) {
       this.context.projectContext.buildTarget = ['all']
       await this.cmakeBuild()
@@ -357,7 +357,7 @@ class Excutor {
     }
   }
 
-  install = async function () {
+  async install() {
     if (this.context.stateMachine.currentState < State.Build) {
       await this.cmakeBuild()
     }
@@ -381,7 +381,7 @@ class Excutor {
     }
   }
 
-  cpack = async function () {
+  async cpack() {
     if (this.context.stateMachine.currentState < State.Build) {
       await this.cmakeBuild()
     }
@@ -463,7 +463,7 @@ async function main() {
   }
 
   // To avoid user not reload the ternimal after install tools,refresh the env
-  let cmdsNotFound = findCmdsInEnv(['cmake', 'conan', 'ninja', 'ctest']) // 'ccache'
+  let cmdsNotFound = checkCmds(['cmake', 'conan', 'ninja', 'ctest']) // 'ccache'
   if (cmdsNotFound.length > 0) {
     console.log(chalk.yellowBright(`Some commands not found in path:${cmdsNotFound} ,Tring reload the environment...`))
     if (process.platform === 'win32') {

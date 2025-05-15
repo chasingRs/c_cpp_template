@@ -3,7 +3,7 @@ import { PathOrFileDescriptor } from 'fs'
 import { assert } from 'console'
 
 // Check cmd in env, return the cmd list that not found
-export function findCmdsInEnv(cmdList: string[]) {
+export function checkCmds(cmdList: string[]) {
   let not_found_cmds = cmdList.filter((cmd) => {
     return which.sync(cmd, { nothrow: true }) === null
   })

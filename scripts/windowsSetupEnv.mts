@@ -1,197 +1,120 @@
-import { exec } from 'child_process';
+// TODO: Make MSVC toolchain install path configurable
 import { usePowerShell } from 'zx';
 import 'zx/globals';
-import { MSVCInstallDir } from './consts.mjs';
-import { refreshEnv } from './envHelper.mjs'
-import { findCmdsInEnv } from './utils.mjs'
+import { MSVCInstallDir, windowsPkgsToInstall } from './consts.mjs';
+import { refreshEnv } from './envHelper.mjs';
+import { checkCmds } from './utils.mjs';
 
+// Validate platform early
 if (process.platform !== 'win32') {
-  console.error(chalk.red("This script is for Windows only,run 'linuxSetupEnv.mts' instead"))
+  console.error(chalk.red("This script is for Windows only, run 'linuxSetupEnv.mts' instead"));
+  process.exit(1);
 }
-usePowerShell()
+usePowerShell();
 
 class ConfigModifier {
-  paltform: string
-  constructor() {
-    this.paltform = process.platform
+  private readonly conanHome: string = `${os.homedir()}/.conan2`;
+  private readonly conanGlobalConfigPath: string = `${this.conanHome}/global.conf`;
+
+  async preInstallHook() {
+    // TODO: Implement any pre-install configuration changes
   }
-  preInstallMod = async function () {
-    // TODO: Change some configs before installing packages
-    // BUG : This cause msvc toolchain broken
-    // await this.modWindowsRegistry()
+
+  async postInstallHook() {
+    await this.configureConan();
   }
-  postInstallMod = async function () {
-    await this.modConan()
-  }
-  private modConan = async function () {
-    const conanHome = `${os.homedir()}/.conan2`
-    await $`conan profile detect --force`.pipe(process.stderr)
-    const content = fs.readFileSync(`${conanHome}/global.conf`, 'utf8')
-    if (content.includes("tools.build:skip_test")) {
-      console.log(chalk.green("conan global config already configured"))
-      return
-    } else {
-      // INFO: Need to set 'tools.microsoft.msbuild:installation_path', if you have multiple MSVC installed
-      // otherwise, msvcDevCmd.bat may complain some errors
-      fs.appendFileSync(`${conanHome}/global.conf`, `
+
+  private async configureConan() {
+    try {
+      await $`conan profile detect --force`.pipe(process.stderr);
+
+      let content = '';
+      if (fs.existsSync(this.conanGlobalConfigPath)) {
+        content = fs.readFileSync(this.conanGlobalConfigPath, 'utf8');
+      }
+
+      if (content.includes('tools.build:skip_test')) {
+        console.log(chalk.green('Conan global config already configured'));
+        return;
+      }
+
+      const configToAppend = `
 tools.build:skip_test = True
-tools.microsoft.msbuild:installation_path=${MSVCInstallDir}/buildTools`)
-    }
-    console.log("=========conan global config=========")
-    console.log(chalk.gray(fs.readFileSync(`${conanHome}/global.conf`, 'utf8')))
-  }
+tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
+`.trim();
 
-  private modWindowsRegistry = async function () {
-    // 定义要检查和修改的注册表项路径和值
-    let registryPath = 'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows Kits\\Installed Roots';
-    let valueName = 'KitsRoot10';
-    let valueType = 'REG_SZ'; // 可以是 REG_SZ, REG_DWORD, 等
-    let valueData = MSVCInstallDir + '\\WindowsKits';
+      fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
 
-    let regAddCommand = `reg add "${registryPath}" /v "${valueName}" /t ${valueType} /d "${valueData}" /f`;
-    exec(regAddCommand, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.error(`Stderr: ${stderr}`);
-        return;
-      }
-      console.log(`Stdout: ${stdout}`);
-    });
-  }
-  // For windows to use PowerShell to invoke .bat script with environment variables saved
-  private modPowerShell = async function () {
-    const powerShellProfile = (await $`echo $PROFILE`).toString().trim()
-    if (powerShellProfile) {
-      if (!fs.existsSync(powerShellProfile)) {
-        fs.createFileSync(powerShellProfile)
-      }
-      const content = await fs.readFile(powerShellProfile, 'utf8')
-      if (content.includes("Invoke-Environment")) {
-        console.log(chalk.green("PowerShell profile already configured"))
-        return
-      }
-      else {
-        fs.appendFileSync(powerShellProfile, ` 
-function Invoke-Environment {
-    param
-    (
-        # Any cmd shell command, normally a configuration batch file.
-        [Parameter(Mandatory=$true)]
-        [string] $Command
-    )
-    $Command = "\`"" + $Command + "\`""
-    cmd /c "$Command > nul 2>&1 && set" | . { process {
-        if ($_ -match '^([^=]+)=(.*)') {
-            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-        }
-    }}
-}`)
-      }
+      console.log('========= Conan global config =========');
+      console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
+    } catch (error) {
+      console.error(chalk.red('Failed to configure Conan:'), error);
+      throw error;
     }
   }
 }
 
 class PackageManager {
-  packageManager: string
-  constructor() {
-    this.packageManager = ''
-  }
-  installToolchain = async function () {
-    switch (this.packageManager) {
-      case 'choco':
-        const pkgList = ['ninja', 'cmake', 'nsis', 'ccache', 'cppcheck', 'opencppcoverage']
+  private packageManager: string = '';
 
-        const pkgNeedInstall = findCmdsInEnv(pkgList)
-        console.log(chalk.blueBright("######## Installing packages: ", pkgNeedInstall, "#########"))
-        await this._chocoInstallPackage(pkgNeedInstall)
-        // FIXME: Doesn't work
-        // await this._chocoInstallPackageWithArgs('visualstudio2022buildtools', [`--package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`])
-
-        // choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=C:\MSVC 2022\buildTools --path shared=C:\MSVC 2022\shared --path cache=C:\MSVC 2022\cache"
-
-        // try {
-        //   findVcvarsall('2022', undefined)
-        //   console.info('MSVC 2022 already installed')
-        // } catch {
-        console.info('Installing MSVC 2022')
-        const chocoInstallCommand = `choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\\buildTools --path shared=${MSVCInstallDir}\\shared --path cache=${MSVCInstallDir}\\cache"`
-        await $`cmd /C ${chocoInstallCommand}`.pipe(process.stderr)
-        // }
-        break
-      default:
-        console.error(chalk.red("Unknown package manager"))
-        process.exit(1)
-    }
-  }
-
-  installConfigPy = async function () {
-    if (findCmdsInEnv(['pyenv']).length == 0) {
-      console.log("pyenv already installed,installing python...")
-    }
-    else {
-      await this._chocoInstallPackage(['pyenv-win'])
-    }
-    await $`pyenv install -s 3.10.5`.pipe(process.stderr)
-    await $`pyenv global 3.10.5`.pipe(process.stderr)
-    await $`python.bat -m ensurepip --upgrade`.pipe(process.stderr)
-  }
-
-  installConan = async function () {
-    if (findCmdsInEnv(['conan']).length == 0) {
-      console.log(chalk.green("Conan already installed"))
+  async detectSystemPackageManager() {
+    if (checkCmds(['choco']).length == 0) {
+      this.packageManager = 'choco';
     } else {
-      await this._chocoInstallPackage(['conan'])
+      console.error(chalk.red('Chocolatey not found in PATH'));
+      process.exit(1);
     }
+    console.log(`Detected package manager: ${this.packageManager}`);
   }
 
-  detectSystemPackageManager = async function () {
-    if (process.platform === 'win32') {
-      if (findCmdsInEnv(['choco']).length == 0) {
-        this.packageManager = 'choco'
-      }
-      else {
-        console.error(chalk.red("platform is windows,but choco not found"))
-        process.exit(1)
-      }
+  async installPackages() {
+    if (this.packageManager !== 'choco') {
+      throw new Error('Unsupported package manager');
     }
-    else {
-      console.error(chalk.red("Unknown platform"))
-      process.exit(1)
+
+    const missingPackages = checkCmds(windowsPkgsToInstall);
+    if (missingPackages.length > 0) {
+      console.log(chalk.blueBright('Installing packages:', missingPackages.join(', ')));
+      await this.chocoInstall(missingPackages);
     }
+
+    // WARN: zx will escape the double quotes when passing args,
+    // See https://google.github.io/zx/quotes
+    const vsBuildToolsArgs = [
+      '--package-parameters',
+      `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
+    ];
+
+    // TODO: Check MSVC installation to decide whether to install or not
+    await this.chocoInstall(['visualstudio2022buildtools'], vsBuildToolsArgs);
   }
 
-  _chocoInstallPackage = async function (packageList: string[]) {
-    for (const pkg of packageList) {
-      await $`choco install -y ${pkg}`.pipe(process.stderr)
-      refreshEnv('refreshenv') // call chooco's refreshenv to refresh environment variables
-    }
-  }
-
-  _chocoInstallPackageWithArgs = async function (pkg: string, args: string[]) {
-    await $`choco install -y ${pkg} ${args}`.pipe(process.stderr)
-    refreshEnv('refreshenv') // call chooco's refreshenv to refresh environment variables
-  }
-
-  _pipInstallPackage = async function (packageList: string[]) {
-    for (const pkg of packageList) {
-      await $`pip install ${pkg}`.pipe(process.stderr)
+  private async chocoInstall(packages: string[], additionalArgs: string[] = []) {
+    try {
+      await $`choco install -y ${packages} ${additionalArgs}`.pipe(process.stderr);
+      refreshEnv('refreshenv');
+    } catch (error) {
+      console.error(chalk.red(`Failed to install packages: ${packages.join(', ')}`), error);
+      throw error;
     }
   }
 }
 
 async function main() {
-  const configModifier = new ConfigModifier()
-  configModifier.preInstallMod()
-  const packageManager = new PackageManager()
-  await packageManager.detectSystemPackageManager()
-  console.log(`Detected package manager: ${packageManager.packageManager}`)
-  await packageManager.installToolchain()
-  await packageManager.installConfigPy()
-  await packageManager.installConan()
-  await configModifier.postInstallMod()
+  try {
+    const configModifier = new ConfigModifier();
+    const packageManager = new PackageManager();
+
+    await packageManager.detectSystemPackageManager();
+    await configModifier.preInstallHook();
+    await packageManager.installPackages();
+    await configModifier.postInstallHook();
+
+    console.log(chalk.green('Setup completed successfully!'));
+  } catch (error) {
+    console.error(chalk.red('Setup failed:'), error);
+    process.exit(1);
+  }
 }
 
-main()
+await main();
