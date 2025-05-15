@@ -1,4 +1,4 @@
-# cmake_template
+# c_cpp_template
 
 [![windows-build](https://github.com/PongKJ/c_cpp_template/actions/workflows/windows-build.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/windows-build.yml)
 [![linux-build](https://github.com/PongKJ/c_cpp_template/actions/workflows/linux-build.yml/badge.svg)](https://github.com/PongKJ/c_cpp_template/actions/workflows/linux-build.yml)
@@ -27,11 +27,9 @@ It requires
 
 - cmake
 - ninja
-- a compiler
+- gcc/MSVC(mainly support) or clang(May have bugs)
 - conan
 - node
-
-This project gets you started with a simple example of using FTXUI, which happens to also be a game.
 
 ## Getting Started
 
@@ -60,6 +58,7 @@ Now you can clone the project locally and get to work!
 3. Conan will try to automatically manage these dependencies
 
 #### Build your project
+
 1. Firstly,install Prerequisities:
 
 For windows:
@@ -76,11 +75,13 @@ For windows:
 `ccache`(optional)
 
 you can run following command to install these prerequisities:
+
 ```bat
 cd ./scripts
 ./setup.bat
 ```
---------------------
+
+---
 
 For linux:
 
@@ -96,13 +97,16 @@ For linux:
 `ccache`(optional)
 
 you can run following command to install these prerequisities:
+
 ```sh
 cd ./scripts
 ./setup.sh
 ```
+
 2. Run script to build, test and pack
-``` sh
-# Chose 'unixlike-gcc-debug' as cmake preset to setup, possible choice are: 'unixlike-gcc-release', 
+
+```sh
+# Chose 'unixlike-gcc-debug' as cmake preset to setup, possible choice are: 'unixlike-gcc-release',
 # 'windows-msvc-debug-developer-mode','windows-msvc-release-developer-mode'
 tsx project.mts setup unixlike-gcc-debug
 tsx project.mts config
@@ -110,15 +114,11 @@ tsx project.mts build
 tsx project.mts test
 tsx project.mts pack
 ```
+
 ## More Details
 
 - [Dependency Setup](README_dependencies.md)
 - [Building Details](README_building.md)
-- [Docker](README_docker.md)
-
-## Testing
-
-See [Catch2 tutorial](https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md)
 
 ## Fuzz testing
 
