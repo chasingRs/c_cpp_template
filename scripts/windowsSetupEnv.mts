@@ -82,7 +82,7 @@ class PackageManager {
     // See https://google.github.io/zx/quotes
     const vsBuildToolsArgs = [
       '--package-parameters',
-      `\"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}\"`
+      `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
     ];
 
     // TODO: Check MSVC installation to decide whether to install or not
@@ -91,7 +91,7 @@ class PackageManager {
 
   private async chocoInstall(packages: string[], additionalArgs: string[] = []) {
     try {
-      await $`choco install -y ${packages} ${additionalArgs}`.pipe(process.stderr);
+      await $`choco install -y --ignore-reboot ${packages} ${additionalArgs}`.pipe(process.stderr);
       refreshEnv('refreshenv');
     } catch (error) {
       console.error(chalk.red(`Failed to install packages: ${packages.join(', ')}`), error);
