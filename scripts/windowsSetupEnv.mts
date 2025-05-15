@@ -78,15 +78,18 @@ class PackageManager {
       await this.chocoInstall(missingPackages);
     }
 
-    // WARN: zx will escape the double quotes when passing args,
-    // See https://google.github.io/zx/quotes
-    const vsBuildToolsArgs = [
-      '--package-parameters',
-      `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
-    ];
+    // // WARN: zx will escape the double quotes when passing args,
+    // // See https://google.github.io/zx/quotes
+    // const vsBuildToolsArgs = [
+    //   '--package-parameters',
+    //   `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
+    // ];
+    //
+    // // TODO: Check MSVC installation to decide whether to install or not
+    // await this.chocoInstall(['visualstudio2022buildtools'], vsBuildToolsArgs);
 
-    // TODO: Check MSVC installation to decide whether to install or not
-    await this.chocoInstall(['visualstudio2022buildtools'], vsBuildToolsArgs);
+    const chocoInstallCommand = `choco install -y visualstudio2022buildtools --package-parameters "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
+    await $`cmd /C ${chocoInstallCommand}`.pipe(process.stderr)
   }
 
   private async chocoInstall(packages: string[], additionalArgs: string[] = []) {
