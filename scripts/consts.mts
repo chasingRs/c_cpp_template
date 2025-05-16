@@ -16,4 +16,4 @@ export const linuxPkgsToInstall = {
 export const MSVCInstallDir = "C:\\MicrosoftVisualStudio"
 
 // ---- Other packages to install -----
-export const windowsPkgsToInstall = ['python', 'conan', 'ninja', 'cmake', 'nsis', 'ccache', 'cppcheck', 'opencppcoverage']
+export const windowsPkgsToInstall = ['python', 'conan', 'ninja', 'cmake', 'nsis.portable', 'ccache', 'cppcheck', 'opencppcoverage']

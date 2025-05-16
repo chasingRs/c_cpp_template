@@ -56,28 +56,91 @@ tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 
 class MSVCToolchainManager {
   private readonly customInstallDir: string;
-  private readonly vsInstallerPath: string = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
+  private readonly vsInstallerPath: string;
+  private readonly vsWherePath: string;
 
   constructor(installDir: string) {
     this.customInstallDir = installDir;
+    this.vsInstallerPath = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
+    this.vsWherePath = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
   }
 
-  async removePreinstalledToolchain() {
+  /**
+   * 检测已安装的 MSVC 工具链
+   */
+  private async detectInstalledToolchains(): Promise<any[]> {
     try {
-      // 检测已安装的 MSVC 组件
-      const instances = JSON.parse($`"${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vswhere.exe" -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`.toString());
-
-      if (instances.length > 0) {
-        console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
-        await $`"${this.vsInstallerPath}" modify --installPath "${instances[0].installationPath}" --remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --norestart`;
-        console.log(chalk.green('Preinstalled MSVC toolchain removed successfully'));
-      }
+      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
+      return JSON.parse(result.stdout);
     } catch (error) {
-      console.log(chalk.yellow('No preinstalled MSVC toolchain found or removal failed:'), error.message);
+      console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
+      return [];
     }
   }
 
-  async installCustomToolchain() {
+  /**
+   * 修改现有安装的位置
+   */
+  private async modifyInstallationPath(instance: any): Promise<boolean> {
+    try {
+      console.log(chalk.yellow(`Modifying installation path from ${instance.installationPath} to ${this.customInstallDir}`));
+
+      await $`& ${this.vsInstallerPath} modify --installPath "${instance.installationPath}" --path install=${this.customInstallDir} --quiet --norestart`;
+
+      console.log(chalk.green('MSVC toolchain installation path modified successfully'));
+      return true;
+    } catch (error) {
+      console.error(chalk.red('Failed to modify installation path:'), error);
+      return false;
+    }
+  }
+
+  /**
+   * 移除已安装的工具链
+   */
+  async removePreinstalledToolchain(): Promise<boolean> {
+    const instances = await this.detectInstalledToolchains();
+
+    if (instances.length === 0) {
+      return false;
+    }
+
+    try {
+      console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
+      await $`& ${this.vsInstallerPath} modify --installPath "${instances[0].installationPath}" --remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --norestart`;
+      console.log(chalk.green('Preinstalled MSVC toolchain removed successfully'));
+      return true;
+    } catch (error) {
+      console.log(chalk.yellow('Removal failed:'), error.message);
+      return false;
+    }
+  }
+
+  /**
+   * 安装或重新定位工具链
+   */
+  async installOrRelocateToolchain(): Promise<void> {
+    const instances = await this.detectInstalledToolchains();
+
+    // 如果已安装且位置正确
+    if (instances.length > 0 && instances[0].installationPath.toLowerCase().startsWith(this.customInstallDir.toLowerCase())) {
+      console.log(chalk.green('MSVC toolchain already installed at desired location'));
+      return;
+    }
+
+    // 尝试修改现有安装位置
+    if (instances.length > 0 && await this.modifyInstallationPath(instances[0])) {
+      return;
+    }
+
+    // 如果修改失败或没有安装，则进行全新安装
+    await this.installCustomToolchain();
+  }
+
+  /**
+   * 全新安装工具链
+   */
+  private async installCustomToolchain(): Promise<void> {
     try {
       console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir}`));
 
@@ -114,12 +177,8 @@ class PackageManager {
     if (this.packageManager !== 'choco') {
       throw new Error('Unsupported package manager');
     }
-
-    const missingPackages = checkCmds(windowsPkgsToInstall);
-    if (missingPackages.length > 0) {
-      console.log(chalk.blueBright('Installing packages:', missingPackages.join(', ')));
-      await this.chocoInstall(missingPackages);
-    }
+    console.log(chalk.blueBright('Installing packages:', windowsPkgsToInstall.join(', ')));
+    await this.chocoInstall(windowsPkgsToInstall);
 
     // // WARN: zx will escape the double quotes when passing args,
     // // See https://google.github.io/zx/quotes
@@ -149,8 +208,7 @@ async function main() {
     const packageManager = new PackageManager();
 
     const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
-    await toolchainManager.removePreinstalledToolchain();
-    await toolchainManager.installCustomToolchain();
+    await toolchainManager.installOrRelocateToolchain();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();
