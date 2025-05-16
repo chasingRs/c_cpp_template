@@ -13,8 +13,6 @@ if (process.platform !== 'win32') {
 usePowerShell();
 
 class ConfigModifier {
-  private readonly conanHome: string = `${os.homedir()}/.conan2`;
-  private readonly conanGlobalConfigPath: string = `${this.conanHome}/global.conf`;
 
   async preInstallHook() {
     // TODO: Implement any pre-install configuration changes
@@ -26,27 +24,46 @@ class ConfigModifier {
 
   private async configureConan() {
     try {
+      // 1. 检测并生成默认 profile
       await $`conan profile detect --force`.pipe(process.stderr);
 
-      let content = '';
-      if (fs.existsSync(this.conanGlobalConfigPath)) {
-        content = fs.readFileSync(this.conanGlobalConfigPath, 'utf8');
+      // 2. 获取默认 profile 路径 (通常是 ~/.conan2/profiles/default)
+      const conanHome = `${os.homedir()}/.conan2`;
+      const defaultProfilePath = `${conanHome}/profiles/default`;
+
+      // 3. 读取并修改 profile 内容
+      let content: string = fs.readFileSync(defaultProfilePath, 'utf8');
+      const lines = content.split('\n');
+      const newLines = lines.map(line => {
+        if (line.trim().startsWith('compiler.cppstd=')) {
+          return 'compiler.cppstd=20';
+        }
+        return line;
+      });
+
+      fs.writeFileSync(defaultProfilePath, newLines.join('\n'));
+
+      // 5. 配置 global.conf
+      const globalConfPath = `${conanHome}/global.conf`;
+      let globalConf = '';
+
+      if (fs.existsSync(globalConfPath)) {
+        globalConf = fs.readFileSync(globalConfPath, 'utf8');
       }
 
-      if (content.includes('tools.build:skip_test')) {
-        console.log(chalk.green('Conan global config already configured'));
-        return;
-      }
-
-      const configToAppend = `
+      if (!globalConf.includes("tools.build:skip_test")) {
+        const configToAppend = `
 tools.build:skip_test = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 `.trim();
+        fs.appendFileSync(globalConfPath, configToAppend);
+      }
 
-      // fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
+      console.log("========= Modified Conan default profile =========");
+      console.log(chalk.gray(fs.readFileSync(defaultProfilePath, 'utf8')));
 
-      console.log('========= Conan global config =========');
-      console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
+      console.log("========= Conan global config =========");
+      console.log(chalk.gray(fs.readFileSync(globalConfPath, 'utf8')));
     } catch (error) {
       console.error(chalk.red('Failed to configure Conan:'), error);
       throw error;
