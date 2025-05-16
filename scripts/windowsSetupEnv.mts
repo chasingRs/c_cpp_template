@@ -56,7 +56,6 @@ tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 
 class MSVCToolchainManager {
   private readonly customInstallDir: string;
-  private vsInstallerPath: string;
   private vsWherePath: string;
   private installCleanupPath: string;
 
@@ -67,7 +66,6 @@ class MSVCToolchainManager {
 
   private initializePaths() {
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
-    this.vsInstallerPath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
     this.vsWherePath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
     this.installCleanupPath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\installCleanup.exe`;
   }
@@ -81,14 +79,7 @@ class MSVCToolchainManager {
       await fs.access(this.vsWherePath);
     } catch (error) {
       console.log(chalk.yellow('Visual Studio Installer not found, installing via Chocolatey...'));
-      try {
-        await $`choco install -y visualstudio-installer --no-progress`;
-        this.initializePaths(); // 重新初始化路径
-        console.log(chalk.green('Visual Studio Installer installed successfully'));
-      } catch (chocoError) {
-        console.error(chalk.red('Failed to install Visual Studio Installer:'), chocoError);
-        throw new Error('Visual Studio Installer installation failed');
-      }
+      this.installWithChocolatey()
     }
   }
 
@@ -133,7 +124,7 @@ class MSVCToolchainManager {
 
       const args = [
         '--package-parameters',
-        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
+        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
       ];
 
       await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
