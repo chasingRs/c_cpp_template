@@ -56,42 +56,52 @@ tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 
 class MSVCToolchainManager {
   private readonly customInstallDir: string;
-  private readonly vsInstallerPath: string;
-  private readonly vsWherePath: string;
+  private vsInstallerPath: string;
+  private vsWherePath: string;
 
   constructor(installDir: string) {
     this.customInstallDir = installDir;
-    this.vsInstallerPath = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
-    this.vsWherePath = `${process.env['ProgramFiles(x86)']}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
+    this.initializePaths();
+  }
+
+  private initializePaths() {
+    const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    this.vsInstallerPath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
+    this.vsWherePath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
+  }
+
+  /**
+   * 检查并安装 Visual Studio Installer（仅在缺失时）
+   */
+  private async ensureInstallerAvailable(): Promise<void> {
+    try {
+      // 检查 vswhere 是否存在
+      await fs.access(this.vsWherePath);
+    } catch (error) {
+      console.log(chalk.yellow('Visual Studio Installer not found, installing via Chocolatey...'));
+      try {
+        await $`choco install -y visualstudio-installer --no-progress`;
+        this.initializePaths(); // 重新初始化路径
+        console.log(chalk.green('Visual Studio Installer installed successfully'));
+      } catch (chocoError) {
+        console.error(chalk.red('Failed to install Visual Studio Installer:'), chocoError);
+        throw new Error('Visual Studio Installer installation failed');
+      }
+    }
   }
 
   /**
    * 检测已安装的 MSVC 工具链
    */
   private async detectInstalledToolchains(): Promise<any[]> {
+    await this.ensureInstallerAvailable();
+
     try {
       const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
       return JSON.parse(result.stdout);
     } catch (error) {
       console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
       return [];
-    }
-  }
-
-  /**
-   * 修改现有安装的位置
-   */
-  private async modifyInstallationPath(instance: any): Promise<boolean> {
-    try {
-      console.log(chalk.yellow(`Modifying installation path from ${instance.installationPath} to ${this.customInstallDir}`));
-
-      await $`& ${this.vsInstallerPath} modify --installPath "${instance.installationPath}" --path install=${this.customInstallDir} --quiet --norestart`;
-
-      console.log(chalk.green('MSVC toolchain installation path modified successfully'));
-      return true;
-    } catch (error) {
-      console.error(chalk.red('Failed to modify installation path:'), error);
-      return false;
     }
   }
 
@@ -107,7 +117,14 @@ class MSVCToolchainManager {
 
     try {
       console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
-      await $`& ${this.vsInstallerPath} modify --installPath "${instances[0].installationPath}" --remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --norestart`;
+
+      await $`& ${this.vsInstallerPath} modify --installPath "${instances[0].installationPath}" `
+        + `--remove Microsoft.VisualStudio.Workload.VCTools `
+        + `--remove Microsoft.Component.MSBuild `
+        + `--remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+        + `--remove Microsoft.VisualStudio.Component.VC.CMake.Project `
+        + `--quiet --norestart`;
+
       console.log(chalk.green('Preinstalled MSVC toolchain removed successfully'));
       return true;
     } catch (error) {
@@ -120,6 +137,7 @@ class MSVCToolchainManager {
    * 安装或重新定位工具链
    */
   async installOrRelocateToolchain(): Promise<void> {
+    await this.ensureInstallerAvailable();
     const instances = await this.detectInstalledToolchains();
 
     // 如果已安装且位置正确
@@ -128,30 +146,31 @@ class MSVCToolchainManager {
       return;
     }
 
-    // 尝试修改现有安装位置
-    if (instances.length > 0 && await this.modifyInstallationPath(instances[0])) {
-      return;
+    // 如果已安装但位置不正确
+    if (instances.length > 0) {
+      if (!await this.removePreinstalledToolchain()) {
+        throw new Error('Failed to remove existing installation');
+      }
     }
 
-    // 如果修改失败或没有安装，则进行全新安装
-    await this.installCustomToolchain();
+    // 全新安装
+    await this.installWithVsInstaller();
   }
 
   /**
-   * 全新安装工具链
+   * 使用 VS Installer 安装工具链
    */
-  private async installCustomToolchain(): Promise<void> {
+  private async installWithVsInstaller(): Promise<void> {
     try {
-      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir}`));
+      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
 
-      const args = [
-        '--package-parameters',
-        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
-      ];
+      await $`& ${this.vsInstallerPath} --installPath "${this.customInstallDir}" `
+        + `--add Microsoft.VisualStudio.Workload.VCTools `
+        + `--includeRecommended `
+        + `--remove Microsoft.VisualStudio.Component.VC.CMake.Project `
+        + `--passive --wait --norestart`;
 
-      await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
       refreshEnv('refreshenv');
-
       console.log(chalk.green('MSVC toolchain installed successfully'));
     } catch (error) {
       console.error(chalk.red('MSVC toolchain installation failed:'), error);
