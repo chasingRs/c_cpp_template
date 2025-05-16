@@ -28,7 +28,7 @@ class ConanApplication(ConanFile):
         self.requires("jsoncpp/1.9.6")
         self.requires("dbg-macro/0.5.1")
         self.requires("opencv/4.10.0")
-        self.requires("boost/1.86.0")
+        # self.requires("boost/1.86.0")
         self.requires("cli11/2.4.2")
 
     def configure(self):
