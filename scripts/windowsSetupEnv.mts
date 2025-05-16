@@ -40,7 +40,7 @@ class ConfigModifier {
 
       const configToAppend = `
 tools.build:skip_test = True
-tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
+tools.microsoft.msbuild:installation_path=${MSVCInstallDir}
 `.trim();
 
       fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
