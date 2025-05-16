@@ -115,7 +115,7 @@ class MSVCToolchainManager {
       console.log(chalk.yellow('Completely uninstalling Visual Studio...'));
 
       // 使用 VS Installer 完全卸载
-      await $`& ${this.installCleanupPath}`;
+      await $`${this.installCleanupPath}`.pipe(process.stderr);
       console.log(chalk.green('Visual Studio completely uninstalled'));
       return true;
     } catch (error) {
