@@ -240,7 +240,7 @@ class Excutor {
       // which contains spaces, and may cause build error
       // See https://github.com/conan-io/cmake-conan/issues/577
       // See https://github.com/conan-io/cmake-conan/tree/develop2#customizing-conan-profiles
-      const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.cmakePreset} ${this.cmakeOptionsTransform().join(' ')} -DCONAN_HOST_PROFILE=default"`.trim()
+      const cmakeConfigreCmd = `"cmake -S . --preset=${this.context.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}"`.trim()
       const symlinkCompileCommandsCmd = `"if (Test-Path ${this.context.projectContext.sourceDir}/compile_commands.json) { Remove-Item ${this.context.projectContext.sourceDir}/compile_commands.json } New-Item -ItemType SymbolicLink -Path ${this.context.projectContext.sourceDir}/compile_commands.json -Target ${this.context.projectContext.binaryDir}/compile_commands.json"`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')

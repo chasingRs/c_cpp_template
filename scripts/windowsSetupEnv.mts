@@ -13,6 +13,8 @@ if (process.platform !== 'win32') {
 usePowerShell();
 
 class ConfigModifier {
+  private readonly conanHome: string = `${os.homedir()}/.conan2`;
+  private readonly conanGlobalConfigPath: string = `${this.conanHome}/global.conf`;
 
   async preInstallHook() {
     // TODO: Implement any pre-install configuration changes
@@ -24,46 +26,27 @@ class ConfigModifier {
 
   private async configureConan() {
     try {
-      // 1. 检测并生成默认 profile
       await $`conan profile detect --force`.pipe(process.stderr);
 
-      // 2. 获取默认 profile 路径 (通常是 ~/.conan2/profiles/default)
-      const conanHome = `${os.homedir()}/.conan2`;
-      const defaultProfilePath = `${conanHome}/profiles/default`;
-
-      // 3. 读取并修改 profile 内容
-      let content: string = fs.readFileSync(defaultProfilePath, 'utf8');
-      const lines = content.split('\n');
-      const newLines = lines.map(line => {
-        if (line.trim().startsWith('compiler.cppstd=')) {
-          return 'compiler.cppstd=20';
-        }
-        return line;
-      });
-
-      fs.writeFileSync(defaultProfilePath, newLines.join('\n'));
-
-      // 5. 配置 global.conf
-      const globalConfPath = `${conanHome}/global.conf`;
-      let globalConf = '';
-
-      if (fs.existsSync(globalConfPath)) {
-        globalConf = fs.readFileSync(globalConfPath, 'utf8');
+      let content = '';
+      if (fs.existsSync(this.conanGlobalConfigPath)) {
+        content = fs.readFileSync(this.conanGlobalConfigPath, 'utf8');
       }
 
-      if (!globalConf.includes("tools.build:skip_test")) {
-        const configToAppend = `
+      if (content.includes('tools.build:skip_test')) {
+        console.log(chalk.green('Conan global config already configured'));
+        return;
+      }
+
+      const configToAppend = `
 tools.build:skip_test = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 `.trim();
-        fs.appendFileSync(globalConfPath, configToAppend);
-      }
 
-      console.log("========= Modified Conan default profile =========");
-      console.log(chalk.gray(fs.readFileSync(defaultProfilePath, 'utf8')));
+      fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
 
-      console.log("========= Conan global config =========");
-      console.log(chalk.gray(fs.readFileSync(globalConfPath, 'utf8')));
+      console.log('========= Conan global config =========');
+      console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
     } catch (error) {
       console.error(chalk.red('Failed to configure Conan:'), error);
       throw error;
@@ -75,6 +58,7 @@ class MSVCToolchainManager {
   private readonly customInstallDir: string;
   private vsInstallerPath: string;
   private vsWherePath: string;
+  private installCleanupPath: string;
 
   constructor(installDir: string) {
     this.customInstallDir = installDir;
@@ -85,6 +69,7 @@ class MSVCToolchainManager {
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
     this.vsInstallerPath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vs_installer.exe`;
     this.vsWherePath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
+    this.installCleanupPath = `${programFilesX86}\\Microsoft Visual Studio\\Installer\\installCleanup.exe`;
   }
 
   /**
@@ -123,30 +108,41 @@ class MSVCToolchainManager {
   }
 
   /**
-   * 移除已安装的工具链
+   * 完全卸载 Visual Studio 实例
    */
-  async removePreinstalledToolchain(): Promise<boolean> {
-    const instances = await this.detectInstalledToolchains();
-
-    if (instances.length === 0) {
-      return false;
-    }
-
+  private async completelyUninstallVisualStudio(): Promise<boolean> {
     try {
-      console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
+      console.log(chalk.yellow('Completely uninstalling Visual Studio...'));
 
-      await $`& ${this.vsInstallerPath} modify --installPath "${instances[0].installationPath}" `
-        + `--remove Microsoft.VisualStudio.Workload.VCTools `
-        + `--remove Microsoft.Component.MSBuild `
-        + `--remove Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-        + `--remove Microsoft.VisualStudio.Component.VC.CMake.Project `
-        + `--quiet --norestart`;
-
-      console.log(chalk.green('Preinstalled MSVC toolchain removed successfully'));
+      // 使用 VS Installer 完全卸载
+      await $`& ${this.installCleanupPath}`;
+      console.log(chalk.green('Visual Studio completely uninstalled'));
       return true;
     } catch (error) {
-      console.log(chalk.yellow('Removal failed:'), error.message);
+      console.error(chalk.red('Failed to completely uninstall Visual Studio:'), error);
       return false;
+    }
+  }
+
+  /**
+   * 使用 Chocolatey 安装 Visual Studio Build Tools
+   */
+  private async installWithChocolatey(): Promise<void> {
+    try {
+      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using Chocolatey`));
+
+      const args = [
+        '--package-parameters',
+        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
+      ];
+
+      await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
+      refreshEnv('refreshenv');
+
+      console.log(chalk.green('MSVC toolchain installed successfully'));
+    } catch (error) {
+      console.error(chalk.red('MSVC toolchain installation failed:'), error);
+      throw error;
     }
   }
 
@@ -163,36 +159,15 @@ class MSVCToolchainManager {
       return;
     }
 
-    // 如果已安装但位置不正确
+    // 如果已安装但位置不正确，则完全卸载
     if (instances.length > 0) {
-      if (!await this.removePreinstalledToolchain()) {
+      if (!await this.completelyUninstallVisualStudio()) {
         throw new Error('Failed to remove existing installation');
       }
     }
 
-    // 全新安装
-    await this.installWithVsInstaller();
-  }
-
-  /**
-   * 使用 VS Installer 安装工具链
-   */
-  private async installWithVsInstaller(): Promise<void> {
-    try {
-      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
-
-      await $`& ${this.vsInstallerPath} modify --installPath "${this.customInstallDir}" `
-        + `--add Microsoft.VisualStudio.Workload.VCTools `
-        + `--includeRecommended `
-        + `--remove Microsoft.VisualStudio.Component.VC.CMake.Project `
-        + `--passive --wait --norestart`;
-
-      refreshEnv('refreshenv');
-      console.log(chalk.green('MSVC toolchain installed successfully'));
-    } catch (error) {
-      console.error(chalk.red('MSVC toolchain installation failed:'), error);
-      throw error;
-    }
+    // 使用 Chocolatey 全新安装到指定位置
+    await this.installWithChocolatey();
   }
 }
 
@@ -243,8 +218,8 @@ async function main() {
     const configModifier = new ConfigModifier();
     const packageManager = new PackageManager();
 
-    // const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
-    // await toolchainManager.installOrRelocateToolchain();
+    const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
+    await toolchainManager.installOrRelocateToolchain();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();
