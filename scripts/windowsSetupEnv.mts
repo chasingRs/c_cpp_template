@@ -145,7 +145,7 @@ class MSVCToolchainManager {
     try {
       console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
 
-      await $`& ${this.vsInstallerPath} --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --passive --norestart --install path ${this.customInstallDir} --path install=${this.customInstallDir}`;
+      await $`& ${this.vsInstallerPath} install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --passive --norestart --path install=${this.customInstallDir}`;
 
       console.log(chalk.green('MSVC toolchain installed successfully'));
     } catch (error) {
