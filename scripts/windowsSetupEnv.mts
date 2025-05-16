@@ -43,7 +43,7 @@ tools.build:skip_test = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}\\buildTools
 `.trim();
 
-      fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
+      // fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
 
       console.log('========= Conan global config =========');
       console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
@@ -164,7 +164,7 @@ class MSVCToolchainManager {
     try {
       console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
 
-      await $`& ${this.vsInstallerPath} --installPath "${this.customInstallDir}" `
+      await $`& ${this.vsInstallerPath} modify --installPath "${this.customInstallDir}" `
         + `--add Microsoft.VisualStudio.Workload.VCTools `
         + `--includeRecommended `
         + `--remove Microsoft.VisualStudio.Component.VC.CMake.Project `
@@ -226,8 +226,8 @@ async function main() {
     const configModifier = new ConfigModifier();
     const packageManager = new PackageManager();
 
-    const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
-    await toolchainManager.installOrRelocateToolchain();
+    // const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
+    // await toolchainManager.installOrRelocateToolchain();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();
