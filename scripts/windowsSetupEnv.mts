@@ -32,25 +32,21 @@ class ConfigModifier {
       if (fs.existsSync(this.conanGlobalConfigPath)) {
         content = fs.readFileSync(this.conanGlobalConfigPath, 'utf8');
       }
-
       if (content.includes('tools.build:skip_test')) {
         console.log(chalk.green('Conan global config already configured'));
         return;
       }
-
       const configToAppend = `
 tools.build:skip_test = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}
 `.trim();
-
       fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);
-
-      console.log('========= Conan global config =========');
-      console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
     } catch (error) {
       console.error(chalk.red('Failed to configure Conan:'), error);
       throw error;
     }
+    console.log('========= Conan global config =========');
+    console.log(chalk.gray(fs.readFileSync(this.conanGlobalConfigPath, 'utf8')));
   }
 }
 
@@ -84,7 +80,7 @@ class MSVCToolchainManager {
 
   private async detectInstalledToolchains(): Promise<any[]> {
     try {
-      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
+      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Workload.VCTools`;
       return JSON.parse(result.stdout);
     } catch (error) {
       console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
@@ -93,13 +89,6 @@ class MSVCToolchainManager {
   }
 
   async removePreinstalledToolchain(): Promise<boolean> {
-    const instances = await this.detectInstalledToolchains();
-    console.log(instances[0].installationPath)
-
-    if (instances.length === 0) {
-      return false;
-    }
-
     try {
       console.log(chalk.yellow('Removing preinstalled MSVC toolchain...'));
 
@@ -116,26 +105,30 @@ class MSVCToolchainManager {
   async installOrRelocateToolchain(): Promise<void> {
     if (await this.checkInstallerAvailable()) {
       const instances = await this.detectInstalledToolchains();
+      console.log(chalk.gray('Detected MSVC toolchains:'), instances);
 
       // installed and in the desired location
-      if (instances.length > 0 && instances[0].installationPath.toLowerCase().startsWith(this.customInstallDir.toLowerCase())) {
-        console.log(chalk.green('MSVC toolchain already installed at desired location'));
-        return;
-      }
-
-      // installed but not in the desired location
       if (instances.length > 0) {
-        if (!await this.removePreinstalledToolchain()) {
+        if (instances.some((instance) => {
+          return instance.installationPath === this.customInstallDir;
+        })) {
+          console.log(chalk.green('MSVC toolchain already installed at desired location'));
+          return;
+        }
+        // installed but not in the desired location
+        else {
+          // Actually, we don't need to remove the existing installation
+          // await this.removePreinstalledToolchain()
+          console.log(chalk.yellow('Relocating MSVC toolchain...'));
+          await this.installWithVsInstaller();
           throw new Error('Failed to remove existing installation');
         }
-        console.log(chalk.yellow('Relocating MSVC toolchain...'));
-        await this.installWithVsInstaller();
       }
     } else {
       // install it with choco
       const args = [
         '--package-parameters',
-        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
+        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
       ];
       await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
     }
@@ -145,7 +138,7 @@ class MSVCToolchainManager {
     try {
       console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
 
-      await $`& ${this.vsInstallerPath} install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --passive --norestart --path install=${this.customInstallDir}`;
+      await $`Start-Process ${this.vsInstallerPath} -ArgumentList 'install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --quiet --norestart --path install=${this.customInstallDir}' -Wait`;
 
       console.log(chalk.green('MSVC toolchain installed successfully'));
     } catch (error) {
