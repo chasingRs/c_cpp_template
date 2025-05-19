@@ -9,6 +9,11 @@
 
 > Note: This Project is a fork of [cpp-best-practices/cmake_template](https://github.com/cpp-best-practices/cmake_template)
 
+- CMakeLists.txt with modern target-based syntax
+- conanfile.py/conanfile.txt for dependency specification
+- CI/CD ready scripts (build, test, pack and publish releases)
+- Cross-platform support (Linux/Windows/macOS)
+  
 By default (collectively known as `ENABLE_DEVELOPER_MODE`)
 
 - Address Sanitizer and Undefined Behavior Sanitizer enabled where possible
