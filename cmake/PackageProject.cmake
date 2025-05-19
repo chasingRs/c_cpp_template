@@ -143,6 +143,7 @@ function(c_cpp_template_package_project)
 
   include("${CMAKE_BINARY_DIR}/conan/build/${CMAKE_BUILD_TYPE}/generators/conan_toolchain.cmake")
 
+  # Install common dynamic libraries
   install(
     IMPORTED_RUNTIME_ARTIFACTS
     ${_PackageProject_TARGETS}
@@ -164,11 +165,38 @@ function(c_cpp_template_package_project)
     # see https://discourse.cmake.org/t/migration-experiences-comparison-runtime-dependency-set-vs-fixup-bundle-bundleutilities/11323/5
     [[.*(\\|/)system32(\\|/).*.dll]]
     [[.*(\\|/)syswow64(\\|/).*.dll]]
-    # [[^/lib.*]]
-    # [[^/usr/lib.*]]
+    [[^/lib.*]]
+    [[^/usr/lib.*]]
     DIRECTORIES
     ${CONAN_RUNTIME_LIB_DIRS}
     $ENV{PATH}) # Mainly for windows msvc, some dlls are not in the runtime lib dirs, but in the PATH
+
+  # Specicially, we need do some copies for qt plugins libraries
+  # NOTE: On linux, some bugs in the qt6 cmake deploy script, so we need to do it manually
+  # See: https://doc.qt.io/qt-6/qt-generate-deploy-app-script.html,
+  # But it doesn't copy plugins to the bin directory as expected
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(PLUGIN_DIRS "")
+    foreach(lib_dir ${CONAN_RUNTIME_LIB_DIRS})
+      string(
+        REGEX MATCH
+              "plugins"
+              match_result
+              ${lib_dir})
+      if(match_result)
+        list(APPEND PLUGIN_DIRS "${lib_dir}")
+      endif()
+    endforeach()
+
+    if(PLUGIN_DIRS)
+      message(STATUS "Deploy Qt: Found plugin directories: ${PLUGIN_DIRS}")
+      foreach(plugin_dir ${PLUGIN_DIRS})
+        message(STATUS "Installing plugins from: ${plugin_dir}")
+        install(DIRECTORY "${plugin_dir}" DESTINATION "plugins")
+      endforeach()
+    endif()
+  endif()
+
   set(_targets_str "")
   foreach(_target ${_PackageProject_TARGETS})
     set(_targets_str "${_targets_str} ${_PackageProject_NAMESPACE}${_target}")

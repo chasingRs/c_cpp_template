@@ -1,6 +1,5 @@
 #define DBG_MACRO_NO_WARNING
 #include <dbg.h>
-#include <fmt/core.h>
 #include <json/json.h>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
@@ -11,11 +10,9 @@
 #include <iostream>
 #include <map>
 #include <opencv2/opencv.hpp>
-#include <string>
 
 int main( [[maybe_unused]] int argc, [[maybe_unused]] char* argv[] ) {
     spdlog::set_level( spdlog::level::debug );
-    spdlog::info( "hello world" );
     spdlog::debug( "hello world" );
     dbg( "hello world" );
     std::cout << cv::getBuildInformation() << std::endl;

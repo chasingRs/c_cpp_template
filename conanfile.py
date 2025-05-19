@@ -22,15 +22,16 @@ class ConanApplication(ConanFile):
         # requirements = self.conan_data.get("requirements", [])
         # for requirement in requirements:
         #     self.requires(requirement)
-        self.requires("fmt/10.2.1")
         self.requires("gtest/1.15.0")
-        self.requires("spdlog/1.14.1")
+        self.requires("spdlog/1.15.1")
         self.requires("jsoncpp/1.9.6")
         self.requires("dbg-macro/0.5.1")
-        self.requires("opencv/4.10.0")
-        # self.requires("boost/1.86.0")
+        self.requires("opencv/4.11.0")
+        self.requires("boost/1.87.0")
         self.requires("cli11/2.4.2")
 
     def configure(self):
         self.options["opencv"].shared = True
         self.options["opencv"].with_wayland = False
+        # Gcc 15.1 have bug with libiconv 1.17, which is used by ffmpeg 4.4.4
+        self.options["opencv"].with_ffmpeg = False
