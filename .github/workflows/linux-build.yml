@@ -27,6 +27,7 @@ jobs:
           - gcc-13
         cmake_preset:
           - "unixlike-gcc-debug"
+          - "unixlike-gcc-release"
     steps:
       - uses: actions/checkout@v4
 
@@ -67,12 +68,13 @@ jobs:
           tsx project.mts cov
 
       - name: Cmake pack
+        if: startsWith(github.ref, 'refs/tags/') && contains(matrix.cmake_preset, 'release')
         run: |
           tsx project.mts pack
 
       - name: Publish Tagged Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && contains(matrix.cmake_preset, 'release')
         with:
           files: |
             ./out/build/${{matrix.cmake_preset}}/*-*${{ matrix.build_type }}*-*.*

@@ -22,8 +22,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Set install rpath/runpath
-set(CMAKE_INSTALL_RPATH $ORIGIN:$ORIGIN/../lib)
+# Set install rpath for linux
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(CMAKE_INSTALL_RPATH $ORIGIN:$ORIGIN/../lib)
+  # Set rpath instead of runpath
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+endif()
 
 # Enhance error reporting and compiler messages
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
