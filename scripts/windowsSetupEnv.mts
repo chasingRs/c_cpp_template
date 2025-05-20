@@ -80,7 +80,7 @@ class MSVCToolchainManager {
 
   private async detectInstalledToolchains(): Promise<any[]> {
     try {
-      const result = await $`& ${this.vsWherePath} -format json -products * -requires -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
+      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Workload.VCTools`;
       return JSON.parse(result.stdout);
     } catch (error) {
       console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
@@ -115,15 +115,10 @@ class MSVCToolchainManager {
           console.log(chalk.green('MSVC toolchain already installed at desired location'));
           return;
         }
-        // installed but not in the desired location
-        else {
-          // Actually, we don't need to remove the existing installation
-          // await this.removePreinstalledToolchain()
-          console.log(chalk.yellow('Relocating MSVC toolchain...'));
-          await this.installWithVsInstaller();
-          throw new Error('Failed to remove existing installation');
-        }
       }
+      // not install or installed but not in the desired location
+      console.log(chalk.yellow('installing MSVC toolchain...'));
+      await this.installWithVsInstaller();
     } else {
       // install it with choco
       const args = [
@@ -136,10 +131,11 @@ class MSVCToolchainManager {
 
   private async installWithVsInstaller(): Promise<void> {
     try {
-      console.log(chalk.blue(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
-
-      await $`Start-Process ${this.vsInstallerPath} -ArgumentList 'install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --quiet --norestart --path install=${this.customInstallDir}' -Wait`;
-
+      console.log(chalk.cyan(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
+      // We need to handle the quoting manually as it's so complex
+      $.quote = x => x
+      await $`Start-Process '${this.vsInstallerPath}' -ArgumentList 'install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --passive --norestart --path install="${this.customInstallDir}"' -Wait`.pipe(process.stderr);
+      $.quote = quotePowerShell
       console.log(chalk.green('MSVC toolchain installed successfully'));
     } catch (error) {
       console.error(chalk.red('MSVC toolchain installation failed:'), error);
