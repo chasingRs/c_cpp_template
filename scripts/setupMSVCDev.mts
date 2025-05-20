@@ -111,9 +111,12 @@ function findVcvarsall(vsVersion?: string, vsPath?: string): string {
     if (fs.existsSync(customPath)) {
       console.info(`Found at custom location: ${customPath}`);
       return customPath;
+    } else {
+      console.warn(`Custom path does not exist: ${customPath}`);
     }
+  } else {
+    console.info("User does not specify the path, checking with vswhere...");
   }
-  console.info("User does not specify the path, checking with vswhere...");
 
   // if user not specify the path, try to find with vswhere
   const vswherePath = findWithVswhere(

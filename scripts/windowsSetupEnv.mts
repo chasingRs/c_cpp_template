@@ -80,7 +80,7 @@ class MSVCToolchainManager {
 
   private async detectInstalledToolchains(): Promise<any[]> {
     try {
-      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Workload.VCTools`;
+      const result = await $`& ${this.vsWherePath} -format json -products * -requires -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
       return JSON.parse(result.stdout);
     } catch (error) {
       console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
