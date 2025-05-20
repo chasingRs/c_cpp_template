@@ -103,7 +103,7 @@ interface StateMachine {
   currentState: State
 }
 
-class ProjectContext {
+class Context {
   cachePath: PathOrFileDescriptor
   cmakePreset: string
   cmakeOptions: CmakeOptions
@@ -142,7 +142,7 @@ class ProjectContext {
       }
   }
 
-  private setup = function (setup: SetupContext) {
+  private setup(setup: SetupContext) {
     try {
       const presets = loadFromJson(setup.cmakePreset.presetsFilePath)
       this.cmakePreset = setup.cmakePreset.selectedPreset
@@ -159,9 +159,9 @@ class ProjectContext {
         launchTarget: [],
         launchArgs: [],
         testArgs: [],
-        projectName: env.PROJECT_NAME,
-        binaryDir: presets.configurePresets[0].binaryDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
-        installDir: presets.configurePresets[0].installDir.replace(/\$\{(.*?)\}/g, (_, p1) => eval(p1)),
+        projectName: env.PROJECT_NAME || 'unkown',
+        binaryDir: presets.configurePresets[0].binaryDir.replace(/\$\{(.*?)\}/g, (_: string, p1: string) => eval(p1)),
+        installDir: presets.configurePresets[0].installDir.replace(/\$\{(.*?)\}/g, (_: string, p1: string) => eval(p1)),
         buildType: presets.configurePresets.find(item => item.name == setup.cmakePreset.selectedPreset).cacheVariables.CMAKE_BUILD_TYPE
       }
     } catch (e) {
@@ -172,7 +172,7 @@ class ProjectContext {
     }
   }
 
-  save2File = function () {
+  save2File() {
     saveToJson(this.cachePath, {
       cmakePreset: this.cmakePreset,
       cmakeOptions: this.cmakeOptions,
@@ -183,16 +183,16 @@ class ProjectContext {
 }
 
 class Excutor {
-  context: ProjectContext
+  context: Context
 
-  constructor(context: ProjectContext) {
+  constructor(context: Context) {
     this.context = context
   }
 
-  private camelToSnake = function (str: string) {
+  private camelToSnake(str: string) {
     return str.replace(/[A-Z]/g, letter => `_${letter}`)
   }
-  private cmakeOptionsTransform = function () {
+  private cmakeOptionsTransform() {
     let cmakeOptions: string[] = []
     for (const [key, value] of Object.entries(this.context.cmakeOptions)) {
       if (typeof value === 'boolean')
@@ -227,15 +227,11 @@ class Excutor {
       await this.clean()
     }
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       // WARN: cmake-conan auto detect cause msvc toolchain path to be the full path
       // which contains spaces, and may cause build error
       // See https://github.com/conan-io/cmake-conan/issues/577
@@ -261,15 +257,11 @@ class Excutor {
     refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanbuild.${scriptPostfix}`)
     refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       const cmakeBuildCmd = `"cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}"`.trim()
       await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
     } else if (process.platform === 'linux') {
@@ -287,15 +279,11 @@ class Excutor {
     }
     refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       // WARN: Only run the first target
       const runTargetCmd = `"${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]}.exe ${this.context.projectContext.launchArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
@@ -313,15 +301,11 @@ class Excutor {
     }
     refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       const runTestCommand = `"ctest --preset ${this.context.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runTestCommand, 'Run test failed')
     } else if (process.platform === 'linux') {
@@ -340,15 +324,11 @@ class Excutor {
     await fs.ensureDir('out/coverage')
     refreshEnv(`${sourceCommandPrefix}${this.context.projectContext.binaryDir}/conan/build/${this.context.projectContext.buildType}/generators/conanrun.${scriptPostfix}`)
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       const runCovCmd = `"OpenCppCoverage.exe --export_type cobertura:out/coverage/coverage.xml --export_type html:out/coverage --cover_children -- ctest --preset ${this.context.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}"`.trim()
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     } else if (process.platform === 'linux') {
@@ -366,15 +346,10 @@ class Excutor {
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      })
       const cpackCommand = `"cmake --install ${this.context.projectContext.binaryDir}"`
       await this.excutecheckExitCode(cpackCommand, 'Install failed')
     } else if (process.platform === 'linux') {
@@ -390,15 +365,11 @@ class Excutor {
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
-      setupMSVCDevCmd(
-        "x64",
-        MSVCInstallDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        undefined
-      );
+      setupMSVCDevCmd({
+        arch: "x64",
+        vsPath: MSVCInstallDir,
+      }
+      )
       const cpackCommand = `"cd ${this.context.projectContext.binaryDir};cpack"`
       await this.excutecheckExitCode(cpackCommand, 'Pack failed')
     } else if (process.platform === 'linux') {
@@ -545,7 +516,7 @@ async function main() {
     }, {} as CmakeOptions)
     setupContext.cmakeOptions = { ...setupContext.cmakeOptions, ...cmakeOptions }
 
-    let context = new ProjectContext(setupContext)
+    let context = new Context(setupContext)
     context.stateMachine.currentState = State.Setup
     const excutor = new Excutor(context)
     // make sure we have a clean begin
@@ -555,7 +526,7 @@ async function main() {
     return
   }
 
-  const context = new ProjectContext()
+  const context = new Context()
   const excutor = new Excutor(context)
   let argsReuse = false
 
