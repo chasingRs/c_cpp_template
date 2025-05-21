@@ -92,7 +92,7 @@ function findWithVswhere(pattern: string, versionPattern?: string): string | nul
 /**
  * Locates vcvarsall.bat file
  */
-function findVcvarsall(vsVersion?: string, vsPath?: string): string {
+export function findVcvarsall(vsVersion?: string, vsPath?: string): string {
   const vsVersionNumber = vsVersion ? normalizeVsVersion(vsVersion) : undefined;
   let versionPattern = "";
 

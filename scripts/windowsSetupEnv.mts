@@ -4,6 +4,7 @@ import 'zx/globals';
 import { MSVCInstallDir, windowsPkgsToInstall } from './consts.mjs';
 import { refreshEnv } from './envHelper.mjs';
 import { checkCmds } from './utils.mjs';
+import { findVcvarsall } from './setupMSVCDev.mts';
 
 // Validate platform early
 if (process.platform !== 'win32') {
@@ -103,7 +104,11 @@ class MSVCToolchainManager {
   }
 
   async installOrRelocateToolchain(): Promise<void> {
-    if (await this.checkInstallerAvailable()) {
+    if (findVcvarsall(this.customInstallDir) === this.customInstallDir) {
+      console.log(chalk.green('MSVC toolchain already installed at desired location'));
+      return;
+    }
+    else if (await this.checkInstallerAvailable()) {
       const instances = await this.detectInstalledToolchains();
       console.log(chalk.gray('Detected MSVC toolchains:'), instances);
 
@@ -134,7 +139,7 @@ class MSVCToolchainManager {
       console.log(chalk.cyan(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
       // We need to handle the quoting manually as it's so complex
       $.quote = x => x
-      await $`Start-Process '${this.vsInstallerPath}' -ArgumentList 'install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --passive --norestart --path install="${this.customInstallDir}"' -Wait`.pipe(process.stderr);
+      await $`Start-Process '${this.vsInstallerPath}' -ArgumentList 'install --channelId "VisualStudio.17.Release" --productId "Microsoft.VisualStudio.Product.BuildTools" --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --quiet --norestart --path install="${this.customInstallDir}"' -Wait`.pipe(process.stderr);
       $.quote = quotePowerShell
       console.log(chalk.green('MSVC toolchain installed successfully'));
     } catch (error) {
@@ -163,16 +168,6 @@ class PackageManager {
     }
     console.log(chalk.blueBright('Installing packages:', windowsPkgsToInstall.join(', ')));
     await this.chocoInstall(windowsPkgsToInstall);
-
-    // // WARN: zx will escape the double quotes when passing args,
-    // // See https://google.github.io/zx/quotes
-    // const vsBuildToolsArgs = [
-    //   '--package-parameters',
-    //   `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${MSVCInstallDir}"`
-    // ];
-    //
-    // // TODO: Check MSVC installation to decide whether to install or not
-    // await this.chocoInstall(['visualstudio2022buildtools'], vsBuildToolsArgs);
   }
 
   private async chocoInstall(packages: string[], additionalArgs: string[] = []) {
