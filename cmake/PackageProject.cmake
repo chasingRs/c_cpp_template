@@ -1,3 +1,10 @@
+# Cpack configuration
+if(WIN32)
+  set(CPACK_GENERATOR "ZIP")
+else()
+  set(CPACK_GENERATOR "TGZ")
+endif()
+
 # Uses ycm (permissive BSD-3-Clause license) and ForwardArguments (permissive MIT license)
 
 function(c_cpp_template_package_project)

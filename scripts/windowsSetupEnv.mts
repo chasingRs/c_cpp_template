@@ -104,33 +104,37 @@ class MSVCToolchainManager {
   }
 
   async installOrRelocateToolchain(): Promise<void> {
-    if (findVcvarsall(this.customInstallDir) === this.customInstallDir) {
-      console.log(chalk.green('MSVC toolchain already installed at desired location'));
-      return;
-    }
-    else if (await this.checkInstallerAvailable()) {
-      const instances = await this.detectInstalledToolchains();
-      console.log(chalk.gray('Detected MSVC toolchains:'), instances);
-
-      // installed and in the desired location
-      if (instances.length > 0) {
-        if (instances.some((instance) => {
-          return instance.installationPath === this.customInstallDir;
-        })) {
-          console.log(chalk.green('MSVC toolchain already installed at desired location'));
-          return;
-        }
+    try {
+      if (findVcvarsall(undefined, this.customInstallDir) === this.customInstallDir) {
+        console.log(chalk.green('MSVC toolchain already installed at desired location'));
+        return;
       }
-      // not install or installed but not in the desired location
-      console.log(chalk.yellow('installing MSVC toolchain...'));
-      await this.installWithVsInstaller();
-    } else {
-      // install it with choco
-      const args = [
-        '--package-parameters',
-        `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
-      ];
-      await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
+    }
+    catch {
+      if (await this.checkInstallerAvailable()) {
+        const instances = await this.detectInstalledToolchains();
+        console.log(chalk.gray('Detected MSVC toolchains:'), instances);
+
+        // installed and in the desired location
+        if (instances.length > 0) {
+          if (instances.some((instance) => {
+            return instance.installationPath === this.customInstallDir;
+          })) {
+            console.log(chalk.green('MSVC toolchain already installed at desired location'));
+            return;
+          }
+        }
+        // not install or installed but not in the desired location
+        console.log(chalk.yellow('installing MSVC toolchain...'));
+        await this.installWithVsInstaller();
+      } else {
+        // install it with choco
+        const args = [
+          '--package-parameters',
+          `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
+        ];
+        await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
+      }
     }
   }
 
