@@ -148,7 +148,7 @@
       }
     },
     {
-      "name": "aarch64-gcc-debug",
+      "name": "unixlike-aarch64-gcc-debug",
       "displayName": "gcc debug",
       "description": "Target Unix-like OS with the gcc compiler, debug build type",
       "inherits": "conf-unixlike-common",
@@ -161,7 +161,7 @@
       }
     },
     {
-      "name": "aarch64-gcc-release",
+      "name": "unixlike-aarch64-gcc-release",
       "displayName": "gcc release",
       "description": "Target Unix-like OS with the gcc compiler, release build type",
       "inherits": "conf-unixlike-common",
@@ -244,18 +244,18 @@
       "configurePreset": "unixlike-clang-release"
     },
     {
-      "name": "aarch64-gcc-debug",
+      "name": "unixlike-aarch64-gcc-debug",
       "displayName": "Strict",
       "description": "Enable output and stop on failure",
       "inherits": "test-common",
-      "configurePreset": "aarch64-gcc-debug"
+      "configurePreset": "unixlike-aarch64-gcc-debug"
     },
     {
-      "name": "aarch64-gcc-release",
+      "name": "unixlike-aarch64-gcc-release",
       "displayName": "Strict",
       "description": "Enable output and stop on failure",
       "inherits": "test-common",
-      "configurePreset": "aarch64-gcc-release"
+      "configurePreset": "unixlike-aarch64-gcc-release"
     }
   ],
   "buildPresets": [
@@ -308,16 +308,16 @@
       "configurePreset": "unixlike-clang-release"
     },
     {
-      "name": "aarch64-gcc-debug",
+      "name": "unixlike-aarch64-gcc-debug",
       "displayName": "gcc debug",
       "description": "Target Unix-like OS with the gcc compiler, debug build type",
-      "configurePreset": "aarch64-gcc-debug"
+      "configurePreset": "unixlike-aarch64-gcc-debug"
     },
     {
-      "name": "aarch64-gcc-release",
+      "name": "unixlike-aarch64-gcc-release",
       "displayName": "gcc release",
       "description": "Target Unix-like OS with the gcc compiler, release build type",
-      "configurePreset": "aarch64-gcc-release"
+      "configurePreset": "unixlike-aarch64-gcc-release"
     }
   ]
 }
