@@ -27,8 +27,9 @@ jobs:
         compiler:
           - gcc-13
         cmake_preset:
-          - "unixlike-gcc-debug"
           - "unixlike-gcc-release"
+          - "unixlike-gcc-debug"
+          - "unixlike-aarch64-gcc-release"
     steps:
       - uses: actions/checkout@v4
 
