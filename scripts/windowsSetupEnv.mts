@@ -39,6 +39,7 @@ class ConfigModifier {
       }
       const configToAppend = `
 tools.build:skip_test = True
+tools.cmake:install_strip = True
 tools.microsoft.msbuild:installation_path=${MSVCInstallDir}
 `.trim();
       fs.appendFileSync(this.conanGlobalConfigPath, configToAppend);

@@ -30,7 +30,8 @@ class ConfigModifier {
       fs.appendFileSync(`${conanHome}/global.conf`, `
 tools.system.package_manager:mode = install
 tools.system.package_manager:sudo = True
-tools.build:skip_test = True`)
+tools.build:skip_test = True
+tools.cmake:install_strip = True`)
     }
     console.log("=========conan global config=========")
     console.log(chalk.grey(fs.readFileSync(`${conanHome}/global.conf`, 'utf8')))
@@ -81,12 +82,12 @@ class PackageManager {
     }
     else {
       await $`curl https://pyenv.run | bash`.pipe(process.stderr)
-      await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile && 
-            echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile && 
+      await $`echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile &&
+            echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile &&
             echo 'eval "$(pyenv init -)"' >> ~/.profile`.pipe(process.stderr)
     }
     refreshEnv('source ~/.profile') //refresh environment, update PATH,etc
-    await $`pyenv install -s 3.10.5 && 
+    await $`pyenv install -s 3.10.5 &&
             pyenv global 3.10.5`.pipe(process.stderr)
     if (checkCmds(['pip']).length > 0) {
       await $`python -m ensurepip --upgrade`.pipe(process.stderr)

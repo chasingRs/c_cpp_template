@@ -168,15 +168,32 @@ function(c_cpp_template_package_project)
     [[libgcc_s\.so\..*]]
     [[libm\.so\..*]]
     [[libstdc\+\+\.so\..*]]
+    [[libpthread\.so\..*]]
+    [[libdl\.so\..*]]
+    [[ld-linux-.*]]
+    [[libasan\.so\..*]]
+    [[libubsan\.so\..*]]
+    [[libtsan\.so\..*]]
+    [[liblsan\.so\..*]]
+    [[libclang_rt\.asan\.so\..*]]
+    [[libclang_rt\.ubsan\.so\..*]]
+    [[libclang_rt\.tsan\.so\..*]]
+    [[libclang_rt\.lsan\.so\..*]]
     POST_EXCLUDE_REGEXES
     # see https://discourse.cmake.org/t/migration-experiences-comparison-runtime-dependency-set-vs-fixup-bundle-bundleutilities/11323/5
     [[.*(\\|/)system32(\\|/).*.dll]]
     [[.*(\\|/)syswow64(\\|/).*.dll]]
     [[^/lib.*]]
     [[^/usr/lib.*]]
+    [[^/usr/aarch64-linux-gnu/lib.*]]
     DIRECTORIES
     ${CONAN_RUNTIME_LIB_DIRS}
-    $ENV{PATH}) # Mainly for windows msvc, some dlls are not in the runtime lib dirs, but in the PATH
+    $ENV{PATH} # Mainly for windows msvc, some dlls are not in the runtime lib dirs, but in the PATH
+    # processor==aarch64|arm64
+    $<$<OR:$<STREQUAL:$<LOWER_CASE:${CMAKE_SYSTEM_PROCESSOR}>,aarch64>,$<STREQUAL:$<LOWER_CASE:${CMAKE_SYSTEM_PROCESSOR}>,arm64>>:/usr/aarch64-linux-gnu/lib>
+    # processor==armv7|armv7-a|armv7l
+    $<$<OR:$<STREQUAL:$<LOWER_CASE:${CMAKE_SYSTEM_PROCESSOR}>,armv7>,$<STREQUAL:$<LOWER_CASE:${CMAKE_SYSTEM_PROCESSOR}>,armv7-a>,$<STREQUAL:$<LOWER_CASE:${CMAKE_SYSTEM_PROCESSOR}>,armv7l>>:/usr/arm-linux-gnueabihf/lib>
+  )
 
   # Specicially, we need do some copies for qt plugins libraries
   # NOTE: On linux, some bugs in the qt6 cmake deploy script, so we need to do it manually
