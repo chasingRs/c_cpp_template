@@ -10,6 +10,15 @@ class ConanApplication(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
 
+    options = {
+        "build_tests": [True, False],
+    }
+
+    default_options = {
+        "build_tests": False,
+        "opencv/*:shared": True,
+    }
+
     def layout(self):
         cmake_layout(self)
 
@@ -31,7 +40,9 @@ class ConanApplication(ConanFile):
         self.requires("cli11/2.4.2")
 
     def configure(self):
-        self.options["opencv"].shared = True
         self.options["opencv"].with_wayland = False
         # Gcc 15.1 have bug with libiconv 1.17, which is used by ffmpeg 4.4.4
         self.options["opencv"].with_ffmpeg = False
+        if self.settings.os == "Linux":
+            self.options["qt"].qtwayland = True
+            self.options["qt"].with_x11 = False

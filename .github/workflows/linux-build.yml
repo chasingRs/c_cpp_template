@@ -84,6 +84,7 @@ jobs:
             ./out/build/${{matrix.cmake_preset}}/*-*${{ matrix.build_type }}*-*.*
 
       - name: Publish to codecov
+        if: ${{ matrix.cmake_preset == 'unixlike-gcc-debug' || matrix.cmake_preset == 'unixlike-gcc-release' }}
         uses: codecov/codecov-action@v4
         with:
           flags: ${{ runner.os }}

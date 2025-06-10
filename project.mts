@@ -246,7 +246,7 @@ class Excutor {
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -268,7 +268,7 @@ class Excutor {
       const cmakeBuildCmd = `cmake --build ${this.context.projectContext.binaryDir} --target ${this.context.projectContext.buildTarget.join(' ')}`.trim()
       await this.excutecheckExitCode(cmakeBuildCmd, 'Build failed')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -291,7 +291,7 @@ class Excutor {
       const runTargetCmd = `${this.context.projectContext.binaryDir}/bin/${this.context.projectContext.launchTarget[0]} ${this.context.projectContext.launchArgs.join(' ')}`.trim()
       await this.excutecheckExitCode(runTargetCmd, 'Run target failed')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
   async runTest() {
@@ -312,7 +312,7 @@ class Excutor {
       const runTestCmd = `ctest --preset ${this.context.cmakePreset} ${this.context.projectContext.testArgs.join(' ')}`.trim()
       await this.excutecheckExitCode(runTestCmd, 'Run test failed')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
 
@@ -337,12 +337,13 @@ class Excutor {
       await this.excutecheckExitCode(runTestCmd, 'Run test failed')
       await this.excutecheckExitCode(runCovCmd, 'Run coverage failed')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
 
   async install() {
-    if (this.context.stateMachine.currentState < State.Build) {
+    if (this.context.stateMachine.currentState < State.Build || this.context.projectContext.buildTarget[0] != 'all') {
+      this.context.projectContext.buildTarget = ['all']
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
@@ -356,12 +357,13 @@ class Excutor {
       const installCmd = `cmake --install ${this.context.projectContext.binaryDir}`
       await this.excutecheckExitCode(installCmd, 'Install failed')
     } else {
-      throw new Error('Unsupported platform or compiler,Only support msvc on windows and gcc on linux')
+      throw new Error('Unsupported platform or compiler, Only support msvc on windows and gcc on linux')
     }
   }
 
   async cpack() {
-    if (this.context.stateMachine.currentState < State.Build) {
+    if (this.context.stateMachine.currentState < State.Build || this.context.projectContext.buildTarget[0] != 'all') {
+      this.context.projectContext.buildTarget = ['all']
       await this.cmakeBuild()
     }
     if (process.platform === 'win32') {
