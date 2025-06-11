@@ -20,11 +20,15 @@ if (process.platform === 'win32') {
   usePowerShell()
   scriptPostfix = 'bat'
   sourceCommandPrefix = ""
-}
-
-if (process.platform === 'linux') {
+  // load dotenv
+  dotenv.config('.env_windows')
+} else if (process.platform === 'linux') {
   scriptPostfix = 'sh'
   sourceCommandPrefix = "source " // Attention: space after source
+  // load dotenv
+  dotenv.config('.env_linux')
+} else {
+  throw new Error('Unsupported platform, Only support windows and linux')
 }
 
 interface CmakeOptions {
@@ -203,6 +207,21 @@ class Excutor {
     return cmakeOptions
   }
 
+  private cmakeExtraFlags() {
+    let extraFlags: string[] = []
+    if (process.platform === 'win32') {
+      //TODO: Add some extra flags for msvc
+    } else if (process.platform === 'linux') {
+      if (process.env.CC) {
+        extraFlags.push(`-DCMAKE_C_COMPILER=${process.env.CC}`)
+      }
+      if (process.env.CXX) {
+        extraFlags.push(`-DCMAKE_CXX_COMPILER=${process.env.CXX}`)
+      }
+    }
+    return extraFlags
+  }
+
   private async excutecheckExitCode(cmd: string, errorMsg: string) {
     if (process.platform === 'win32') {
       if (await $$`powershell -Command ${cmd}`.exitCode !== 0) {
@@ -241,7 +260,7 @@ class Excutor {
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')
     } else if (process.platform === 'linux') {
-      const cmakeConfigreCmd = `cmake -S . --preset=${this.context.cmakePreset} ${this.cmakeOptionsTransform().join(' ')}`.trim()
+      const cmakeConfigreCmd = `cmake -S . --preset=${this.context.cmakePreset} ${this.cmakeOptionsTransform().join(' ')} ${this.cmakeExtraFlags().join(' ')}`.trim()
       const symlinkCompileCommandsCmd = `ln -sfr ${this.context.projectContext.binaryDir}/compile_commands.json ${this.context.projectContext.sourceDir}/compile_commands.json`
       await this.excutecheckExitCode(cmakeConfigreCmd, 'Cmake configure failed')
       await this.excutecheckExitCode(symlinkCompileCommandsCmd, 'Unable to create compile_commands.json')
