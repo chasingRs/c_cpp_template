@@ -41,7 +41,10 @@
       "condition": {
         "type": "inList",
         "string": "${hostSystemName}",
-        "list": ["Linux", "Darwin"]
+        "list": [
+          "Linux",
+          "Darwin"
+        ]
       },
       "vendor": {
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
@@ -109,8 +112,8 @@
       "description": "Target Unix-like OS with the gcc compiler, debug build type",
       "inherits": "conf-unixlike-common",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_C_COMPILER": "gcc-14",
+        "CMAKE_CXX_COMPILER": "g++-14",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -120,8 +123,8 @@
       "description": "Target Unix-like OS with the gcc compiler, release build type",
       "inherits": "conf-unixlike-common",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_C_COMPILER": "gcc-14",
+        "CMAKE_CXX_COMPILER": "g++-14",
         "CMAKE_BUILD_TYPE": "Release"
       }
     },

@@ -10,7 +10,7 @@
                 "DYLD_LIBRARY_PATH": "/home/pkj/.conan2/p/b/opencdf3d78b6a43d0/p/lib:",
                 "SHLVL": "2",
                 "LD_LIBRARY_PATH": "/home/pkj/.conan2/p/b/opencdf3d78b6a43d0/p/lib:",
-                "PATH": "/home/pkj/.conan2/p/b/opencdf3d78b6a43d0/p/bin:/home/pkj/.cargo/bin:/home/pkj/SDK/flutter/bin:/home/pkj/.local/bin:/home/pkj/SDK/Android/cmdline-tools/latest/bin:/run/user/1000/fnm_multishells/45640_1749609415982/bin:/home/pkj/.pyenv/shims:/home/pkj/.local/share/nvim/mason/bin:/run/user/1000/fnm_multishells/11118_1749607714281/bin:/home/pkj/.local/lib/hyde::/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin"
+                "PATH": "/home/pkj/.conan2/p/b/opencdf3d78b6a43d0/p/bin:/home/pkj/.cargo/bin:/home/pkj/SDK/flutter/bin:/home/pkj/.local/bin:/home/pkj/SDK/Android/cmdline-tools/latest/bin:/run/user/1000/fnm_multishells/120302_1749611332108/bin:/home/pkj/.pyenv/shims:/home/pkj/.local/share/nvim/mason/bin:/run/user/1000/fnm_multishells/11118_1749607714281/bin:/home/pkj/.local/lib/hyde::/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin"
             }
         }
     ]

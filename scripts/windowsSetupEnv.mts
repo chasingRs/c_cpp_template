@@ -82,10 +82,10 @@ class MSVCToolchainManager {
 
   private async detectInstalledToolchains(): Promise<any[]> {
     try {
-      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Workload.VCTools`;
+      const result = await $`& ${this.vsWherePath} -format json -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`;
       return JSON.parse(result.stdout);
     } catch (error) {
-      console.log(chalk.yellow('No MSVC toolchain detected:'), error.message);
+      console.log(chalk.yellow('MSVC toolchain detected failed: '), error.message);
       return [];
     }
   }
@@ -106,7 +106,7 @@ class MSVCToolchainManager {
 
   async installOrRelocateToolchain(): Promise<void> {
     try {
-      if (findVcvarsall(undefined, this.customInstallDir) === this.customInstallDir) {
+      if (findVcvarsall(undefined, this.customInstallDir).startsWith(this.customInstallDir)) {
         console.log(chalk.green('MSVC toolchain already installed at desired location'));
         return;
       }
@@ -141,17 +141,21 @@ class MSVCToolchainManager {
       ];
       await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
     }
+  }
+
+  async crateSymbolicLink(): Promise<void> {
     // symbolic link 'C:\\Program Files (x86)' to 'C:\\.ProgramFiles'
     if (!fs.existsSync('C:\\.ProgramFiles')) {
-      console.log(chalk.yellow('Creating symbolic link for C:\\Program Files (x86)'));
+      console.log(chalk.yellow(`Creating symbolic link for ${process.env['ProgramFiles(x86)']}`));
       try {
-        await $`New-Item -ItemType SymbolicLink -Path 'C:\\.ProgramFiles' -Target '${process.env['ProgramFiles(x86)']}'`.pipe(process.stderr);
+        await $`New-Item -ItemType SymbolicLink -Path 'C:\\.ProgramFiles' -Target ${process.env['ProgramFiles(x86)']}`.pipe(process.stderr);
         console.log(chalk.green('Symbolic link created successfully'));
       } catch (error) {
         console.error(chalk.red('Failed to create symbolic link:'), error);
       }
     }
   }
+
 
   private async installWithVsInstaller(): Promise<void> {
     try {
@@ -207,6 +211,7 @@ async function main() {
 
     const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
     await toolchainManager.installOrRelocateToolchain();
+    await toolchainManager.crateSymbolicLink();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();
