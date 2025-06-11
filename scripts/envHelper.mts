@@ -83,44 +83,61 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
       // This makes repeated invocations of this action fail after some
       // point, when the environment variable overflows. Avoid that.
       if (isPathVariable(name)) {
-        new_value = filterPathValue(new_value);
+        new_value = preprocessPathValue(new_value);
       }
-      new_value = substituteEnvVariables(new_value);
       envList.set(name, new_value)
     }
   }
   return envList;
 }
 
-// substitute 'C:\Program Files (x86)' wit 'C:\.ProgramFiles' to prevent build issues
-function substituteEnvVariables(value: string) {
-  if (value.includes("C:\\Program Files (x86)")) {
-    return value.replaceAll("C:\\Program Files (x86)", "C:\\.ProgramFiles");
+// 将windows下包含空格的路径替换为对应的短路径
+// This is a workaround for the issue with spaces in paths on Windows.
+function getShortPathNames(paths: string[]): Map<string, string> {
+  const result = new Map<string, string>();
+  if (paths.length === 0) return result;
+
+  // 生成 PowerShell 脚本
+  const psScript = paths.map(path =>
+    `try { $f = $a.GetFolder('${path.replace(/'/g, "''")}'); $f.ShortPath } catch { '${path}' }`
+  ).join("; ");
+
+  try {
+    const output = child_process.execSync(
+      `powershell -Command "$a = New-Object -ComObject Scripting.FileSystemObject; ${psScript}"`,
+      { encoding: 'utf-8' }
+    ).trim().split("\r\n");
+
+    paths.forEach((path, index) => {
+      result.set(path, output[index] || path);
+    });
+  } catch (error) {
+    console.error("Batch short path conversion failed:", error);
+    paths.forEach(path => result.set(path, path));
   }
-  return value;
+
+  return result;
 }
 
-function filterPathValue(path: string) {
-  function unique(value: string, index: number, self: string[]) {
-    return self.indexOf(value) === index;
+// 1.filter out duplicate paths in PATH-like variables
+// 2.replace long paths with short paths to prevent paths with spaces(for windows
+function preprocessPathValue(path: string) {
+  const unique = (value: string, index: number, self: string[]) =>
+    self.indexOf(value) === index;
+
+  if (process.platform === 'win32') {
+    const paths = path.split(";").filter(unique);
+    const pathsWithSpaces = paths.filter(p => p.includes(" "));
+    const shortPaths = getShortPathNames(pathsWithSpaces);
+    return paths.map(p => shortPaths.get(p) || p).join(";");
+  } else if (process.platform === 'linux') {
+    return path.split(":").filter(unique).join(":");
   }
-  let paths: string[] = [];
-  if (process.platform == 'win32') {
-    paths = path.split(";");
-    // Remove duplicates by keeping the first occurance and preserving order.
-    // This keeps path shadowing working as intended.
-    return paths.filter(unique).join(";");
-  }
-  else if (process.platform == 'linux') {
-    paths = path.split(":");
-    return paths.filter(unique).join(":");
-  } else {
-    throw new Error("Unsupported platform");
-  }
+  throw new Error("Unsupported platform");
 }
 
 function isPathVariable(name: string) {
   // TODO: Add more variables to the list.
-  const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH"];
+  const pathLikeVariables = ["PATH", "INCLUDE", "LIB", "LIBPATH", 'EXTERNAL_INCLUDE'];
   return pathLikeVariables.indexOf(name.toUpperCase()) != -1;
 }

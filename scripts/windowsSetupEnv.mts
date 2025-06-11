@@ -142,20 +142,6 @@ class MSVCToolchainManager {
     }
   }
 
-  async crateSymbolicLink(): Promise<void> {
-    // symbolic link 'C:\\Program Files (x86)' to 'C:\\.ProgramFiles'
-    if (!fs.existsSync('C:\\.ProgramFiles')) {
-      console.log(chalk.yellow(`Creating symbolic link for ${process.env['ProgramFiles(x86)']}`));
-      try {
-        await $`New-Item -ItemType SymbolicLink -Path 'C:\\.ProgramFiles' -Target ${process.env['ProgramFiles(x86)']}`.pipe(process.stderr);
-        console.log(chalk.green('Symbolic link created successfully'));
-      } catch (error) {
-        console.error(chalk.red('Failed to create symbolic link:'), error);
-      }
-    }
-  }
-
-
   private async installWithVsInstaller(): Promise<void> {
     try {
       console.log(chalk.cyan(`Installing MSVC toolchain to ${this.customInstallDir} using VS Installer`));
@@ -210,7 +196,6 @@ async function main() {
 
     const toolchainManager = new MSVCToolchainManager(MSVCInstallDir);
     await toolchainManager.installOrRelocateToolchain();
-    await toolchainManager.crateSymbolicLink();
 
     await packageManager.detectSystemPackageManager();
     await configModifier.preInstallHook();

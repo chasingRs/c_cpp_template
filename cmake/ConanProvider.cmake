@@ -488,11 +488,13 @@ macro(append_compiler_executables_configuration)
     message(WARNING "CMake-Conan: The C++ compiler is not defined. "
                     "Please define CMAKE_CXX_COMPILER or enable the C++ language.")
   endif()
-  if(CMAKE_RC_COMPILER)
-    set(_conan_rc_compiler "\"rc\":\"${CMAKE_RC_COMPILER}\"")
-    list(APPEND _conan_compilers_list ${_conan_rc_compiler})
-    # Not necessary to warn if RC not defined
-  endif()
+  # FIXME: set rc compiler to rc.exe(provided by Visual Studio) makes libiconv
+  # build failed on windows as rc.exe does not support the --output-format=coff option.
+  # if(CMAKE_RC_COMPILER)
+  #   set(_conan_rc_compiler "\"rc\":\"${CMAKE_RC_COMPILER}\"")
+  #   list(APPEND _conan_compilers_list ${_conan_rc_compiler})
+  #   # Not necessary to warn if RC not defined
+  # endif()
   if(NOT
      "x${_conan_compilers_list}"
      STREQUAL
