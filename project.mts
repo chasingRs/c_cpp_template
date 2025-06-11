@@ -2,12 +2,12 @@ import { PathOrFileDescriptor } from 'fs'
 import { usePowerShell } from 'zx'
 import 'zx/globals'
 import { MSVCInstallDir } from './scripts/consts.mjs'
-import { refreshEnv, getEnvDiff } from './scripts/envHelper.mts'
+import { refreshEnv, getEnvDiff, parseEnvFromFile } from './scripts/envHelper.mts'
 import { setupMSVCDevCmd } from './scripts/setupMSVCDev.mts'
 import { checkCmds, loadFromJson, saveToJson, replaceJsonNode } from './scripts/utils.mts'
 
 // Do Not show call backtrace on error
-const NoCallstackOnError = false
+const NoCallstackOnError = true
 
 const cachePath = '.project_cache.json'
 const presetsFilePath = 'CMakePresets.json'
@@ -21,12 +21,18 @@ if (process.platform === 'win32') {
   scriptPostfix = 'bat'
   sourceCommandPrefix = ""
   // load dotenv
-  dotenv.config('.env_windows')
+  let new_env = parseEnvFromFile('.env_windows')
+  for (const [name, value] of new_env) {
+    process.env[name] = value
+  }
 } else if (process.platform === 'linux') {
   scriptPostfix = 'sh'
   sourceCommandPrefix = "source " // Attention: space after source
   // load dotenv
-  dotenv.config('.env_linux')
+  let new_env = parseEnvFromFile('.env_linux')
+  for (const [name, value] of new_env) {
+    process.env[name] = value
+  }
 } else {
   throw new Error('Unsupported platform, Only support windows and linux')
 }

@@ -20,13 +20,6 @@ function(c_cpp_template_check_sanitizer_support sanitizer_type var_name)
     set(CMAKE_REQUIRED_FLAGS "-fsanitize=${sanitizer_type}")
     set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=${sanitizer_type}")
   else()
-    string(FIND "$ENV{PATH}" "$ENV{VSINSTALLDIR}" index_of_vs_install_dir)
-    if("${index_of_vs_install_dir}" STREQUAL "-1")
-      message(
-        SEND_ERROR
-          "Using MSVC sanitizers requires setting the MSVC environment before building the project. Please manually open the MSVC command prompt and rebuild the project."
-      )
-    endif()
     set(CMAKE_REQUIRED_FLAGS "/fsanitize=${sanitizer_type} /Zi /INCREMENTAL:NO")
     set(CMAKE_REQUIRED_LINK_OPTIONS "/INCREMENTAL:NO")
     set(CMAKE_REQUIRED_DEFINITIONS "_DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION")

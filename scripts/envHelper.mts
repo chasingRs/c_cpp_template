@@ -9,6 +9,58 @@ export function refreshEnv(cmd: string, error_message_pattern?: RegExp) {
   }
 }
 
+// Parse environment variables from a file, eg: .env
+// the file should be in the format:
+// VAR=value  ==> set 'VAR' to 'value'
+// VAR+=value  ==> append 'value' to 'VAR' (may be very helpful for PATH-like variables)
+// $pwd ==> represent the current working directory
+// TODO: Experimental function, not fully tested yet, maybe need handle special characters escaping
+export function parseEnvFromFile(filePath: string): Map<string, string> {
+  const envList = new Map<string, string>();
+  const fileContent = fs.readFileSync(filePath, { encoding: "utf-8" });
+  const lines = fileContent.split("\n").filter((line: string) => line.trim() !== "");
+
+  for (const line of lines) {
+    let trimmedLine: string = line.trim();
+    // Skip comments and empty lines
+    if (trimmedLine.startsWith("#") || trimmedLine.length === 0) {
+      continue; // Skip comments and empty lines
+    }
+    // replace $pwd with current working directory
+    if (trimmedLine.includes("$pwd")) {
+      const currentDir = process.cwd();
+      trimmedLine = trimmedLine.replace(/\$pwd\b/g, currentDir);
+    }
+    if (trimmedLine.includes("+=")) {
+      // Handle appending to existing variable
+      const [key, value] = trimmedLine.split(/\+=/);
+      if (key && value !== undefined) {
+        let existingValue: string = "";
+        if (process.env !== undefined) {
+          existingValue = process.env[key.trim()] || "";
+        }
+        if (process.platform === 'win32') {
+          envList.set(key.trim(), existingValue + ";" + value.trim());
+        } else if (process.platform === 'linux') {
+          envList.set(key.trim(), existingValue + ":" + value.trim());
+        }
+      } else {
+        console.warn(`Invalid line in env file: ${line}`);
+        continue; // Skip invalid lines
+      }
+      continue;
+    }
+    const [key, value] = trimmedLine.split(/=(.+)/); // Split on the first '='
+    if (key && value !== undefined) {
+      envList.set(key.trim(), value.trim());
+    } else {
+      console.warn(`Invalid line in env file: ${line}`);
+      continue; // Skip invalid lines
+    }
+  }
+  return envList;
+}
+
 // Run a command in a shell and return the environment variables been changed
 export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<string, string> {
   let old_environment: string[] = []
