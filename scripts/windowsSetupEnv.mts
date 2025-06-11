@@ -125,8 +125,10 @@ class MSVCToolchainManager {
           return instance.installationPath === this.customInstallDir;
         })) {
           console.log(chalk.green('MSVC toolchain already installed at desired location'));
-          return;
+        } else {
+          // TODO: Handle case where installed but not in the desired location
         }
+        return;
       }
       // not install or installed but not in the desired location
       console.log(chalk.yellow('installing MSVC toolchain...'));
@@ -138,6 +140,16 @@ class MSVCToolchainManager {
         `"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.AddressSanitizer --includeRecommended --remove Microsoft.VisualStudio.Component.VC.CMake.Project --path install=${this.customInstallDir}"`
       ];
       await $`choco install -y visualstudio2022buildtools ${args}`.pipe(process.stderr);
+    }
+    // symbolic link 'C:\\Program Files (x86)' to 'C:\\.ProgramFiles'
+    if (!fs.existsSync('C:\\.ProgramFiles')) {
+      console.log(chalk.yellow('Creating symbolic link for C:\\Program Files (x86)'));
+      try {
+        await $`New-Item -ItemType SymbolicLink -Path 'C:\\.ProgramFiles' -Target '${process.env['ProgramFiles(x86)']}'`.pipe(process.stderr);
+        console.log(chalk.green('Symbolic link created successfully'));
+      } catch (error) {
+        console.error(chalk.red('Failed to create symbolic link:'), error);
+      }
     }
   }
 

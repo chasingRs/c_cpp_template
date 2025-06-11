@@ -16,7 +16,7 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
   let new_environment: string[] = []
   if (process.platform == "win32") {
     const cmd_output_string = child_process
-   .execSync(`set && cls && ${cmd} && cls && set`.replaceAll("/","\\"), { shell: "cmd" })
+      .execSync(`set && cls && ${cmd} && cls && set`.replaceAll("/", "\\"), { shell: "cmd" })
       .toString();
     const cmd_output_parts = cmd_output_string.split("\f");
     old_environment = cmd_output_parts[0].split("\r\n");
@@ -85,10 +85,19 @@ export function getEnvDiff(cmd: string, error_message_pattern?: RegExp): Map<str
       if (isPathVariable(name)) {
         new_value = filterPathValue(new_value);
       }
+      new_value = substituteEnvVariables(new_value);
       envList.set(name, new_value)
     }
   }
   return envList;
+}
+
+// substitute 'C:\Program Files (x86)' wit 'C:\.ProgramFiles' to prevent build issues
+function substituteEnvVariables(value: string) {
+  if (value.includes("C:\\Program Files (x86)")) {
+    return value.replaceAll("C:\\Program Files (x86)", "C:\\.ProgramFiles");
+  }
+  return value;
 }
 
 function filterPathValue(path: string) {

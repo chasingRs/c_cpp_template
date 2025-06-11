@@ -1,0 +1,1 @@
+windows(MSVC toolchain setup): Use the method of creating a symbolic link instead of reinstalling
