@@ -10,7 +10,7 @@ endif()
 # Set the project name and language
 project(
   c_cpp_template
-  VERSION 0.0.8
+  VERSION 0.1.0
   DESCRIPTION ""
   HOMEPAGE_URL "%%myurl%%"
   LANGUAGES CXX C)
