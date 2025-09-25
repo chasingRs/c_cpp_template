@@ -1,5 +1,7 @@
 # c_cpp_template
 
+A modern C++20 project template with comprehensive tooling, dependency management, and TypeScript-based project automation.
+
 [![windows-build](https://github.com/chasingRs/c_cpp_template/actions/workflows/windows-build.yml/badge.svg)](https://github.com/chasingRs/c_cpp_template/actions/workflows/windows-build.yml)
 [![linux-build](https://github.com/chasingRs/c_cpp_template/actions/workflows/linux-build.yml/badge.svg)](https://github.com/chasingRs/c_cpp_template/actions/workflows/linux-build.yml)
 [![codecov](https://codecov.io/gh/chasingRs/c_cpp_template/branch/main/graph/badge.svg)](https://codecov.io/gh/chasingRs/c_cpp_template)
