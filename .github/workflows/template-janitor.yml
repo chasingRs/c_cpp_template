@@ -30,6 +30,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Cache
         uses: ./.github/actions/linux_setup_cache
@@ -140,6 +143,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Cache
         uses: ./.github/actions/linux_setup_cache
